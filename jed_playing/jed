@@ -1,0 +1,62 @@
+#!/usr/bin/env -S uv run --script
+#
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["lark>=1.3.1"]
+# ///
+
+
+import argparse
+import sys
+from lark import Lark, Transformer
+
+grammar = r"""
+start: command+
+
+command: JREGEX* JVALUE? "s/" OLD_PATTERN "/" NEW_PATTERN "/" FLAGS   -> jed_substitute_value_regex
+       | JREGEX* JVALUE? "S/" OLD_PATTERN "/" NEW_PATTERN "/" FLAGS   -> jed_substitute_key_regex
+
+REGEX: /[a-zA-Z0-9 \[\]+.?*_^-]+/
+JREGEX: "/"REGEX"/""."?
+JVALUE: ":/"REGEX"/"
+NEW_PATTERN: REGEX
+OLD_PATTERN: REGEX
+FLAGS: LETTER+
+
+%import common.LETTER
+%import common.WS
+%ignore WS
+"""
+
+
+class SedTransformer(Transformer):
+    def __init__(self, text):
+        super().__init__()
+        self.text = text
+
+    def jed_substitute_value_regex(self, args):
+        print("Function: jed_substitute_value_regex")
+        print(args)
+        sys.exit()
+
+    def jed_substitute_key_regex(self, args):
+        print("Function: jed_substitute_key_regex")
+        print(args)
+        sys.exit()
+
+
+if __name__ == "__main__":
+    argument_parser = argparse.ArgumentParser(
+        prog="jed",
+        description="Sed for json!",
+    )
+    argument_parser.add_argument("jed_script")
+    args = argument_parser.parse_args()
+
+    grammar_parser = Lark(grammar)
+    tree = grammar_parser.parse(args.jed_script)
+    t = SedTransformer("")
+    t.transform(tree)
+    print(t.text)
+
+# vim: set syntax=python filetype=python:
