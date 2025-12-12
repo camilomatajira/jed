@@ -10,6 +10,7 @@ import argparse
 import sys
 import re
 import json
+from numbers import Number
 from lark import Lark, Transformer
 from pygments import highlight
 from pygments.lexers import JsonLexer
@@ -69,20 +70,39 @@ def key_substitute(data: dict, old_regex: str, new: str) -> dict:
     return data_copy
 
 
-def value_substitute(data: dict, old_regex: str, new: str) -> dict:
-    data_copy = data.copy()
+def value_substitute(data: dict | list, old_regex: str, new: str) -> dict:
     compiled_regex = re.compile(old_regex)
-    for i in data.keys():
-        if type(data[i]) is dict:
+    if isinstance(data, list):
+        print(data, "es lista")
+        result = []
+        for j in data:
+            result.append(value_substitute(j, old_regex, new))
+        return result
+    elif isinstance(data, dict):
+        print(data, "es dicctionario")
+        data_copy = data.copy()
+        for i in data.keys():
             data_copy[i] = value_substitute(data[i], old_regex, new)
-        elif type(data[i]) is list:
-            result = []
-            for j in data[i]:
-                result.append(value_substitute(j, old_regex, new))
-            data_copy[i] = result
-        elif compiled_regex.search(str(data[i])):
-            data_copy[i] = compiled_regex.sub(new, str(data[i]))
-    return data_copy
+        return data_copy
+    elif isinstance(data, bool):
+        print(data, "es bool")
+        data_copy = compiled_regex.sub(new, str(data))
+        print("%" * 80)
+        if re.match("^[Tt]rue$", data_copy):
+            print("a" * 80)
+            return True
+        if re.match("^[Ff]alse$", data_copy):
+            print("b" * 80)
+            return False
+        print("%" * 80)
+        return data_copy
+    elif isinstance(data, Number):
+        print(data, "es numero")
+        data_copy = compiled_regex.sub(new, str(data))
+        return float(data_copy) if "." in data_copy else int(data_copy)
+    else:
+        data_copy = compiled_regex.sub(new, data)
+        return data_copy
 
 
 def pretty_print_dictionary(data: dict):

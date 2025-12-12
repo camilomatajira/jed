@@ -83,3 +83,47 @@ class TestInitial(unittest.TestCase):
         print(data)
 
         assert data["commit"][1]["author"] == "mata"
+
+    def test_value_substitute_3(self):
+        some_json = """
+[
+    { "author": "camilo" },
+    { "author": "andres" }
+]
+"""
+        data = json.loads(some_json)
+        data = value_substitute(data, "andres", "mata")
+        assert data[1]
+        assert data[1]["author"] == "mata"
+
+    def test_value_substitute_4(self):
+        some_json = """
+{
+  "commit": {
+    "author": {
+      "name": 5
+    }
+}
+}
+"""
+        data = json.loads(some_json)
+        data = value_substitute(data, "5", "6")
+        assert data["commit"]["author"]["name"] == 6
+
+    def test_value_substitute_5(self):
+        some_json = """
+{
+  "commit": {
+    "author": {
+      "name": true
+    }
+}
+}
+"""
+        data = json.loads(some_json)
+        print("$" * 80)
+        print(data)
+        print("$" * 80)
+        # assert False
+        data = value_substitute(data, "True", "False")
+        assert data["commit"]["author"]["name"] is False
