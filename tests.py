@@ -127,3 +127,33 @@ class TestInitial(unittest.TestCase):
         # assert False
         data = value_substitute(data, "True", "False")
         assert data["commit"]["author"]["name"] is False
+
+    def test_value_substitute_6(self):
+        some_json = """ 
+{
+"sha": "03cb1e19da91f0df728914d4c8717f7490df04e4"
+}
+"""
+        data = json.loads(some_json)
+        data = value_substitute(data, ".+", "hola")
+        assert data["sha"] == "hola"
+
+    def test_value_substitute_7(self):
+        some_json = """ 
+{
+"sha": 0
+}
+"""
+        data = json.loads(some_json)
+        data = value_substitute(data, ".+", "hola")
+        assert data["sha"] == "hola"
+
+    def test_value_substitute_8(self):
+        some_json = """ 
+{
+"sha": null
+}
+"""
+        data = json.loads(some_json)
+        data = value_substitute(data, ".*", "hola")
+        assert data["sha"] == "hola"

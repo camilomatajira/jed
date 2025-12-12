@@ -99,9 +99,21 @@ def value_substitute(data: dict | list, old_regex: str, new: str) -> dict:
     elif isinstance(data, Number):
         print(data, "es numero")
         data_copy = compiled_regex.sub(new, str(data))
-        return float(data_copy) if "." in data_copy else int(data_copy)
+        try:
+            return float(data_copy) if "." in data_copy else int(data_copy)
+        except ValueError:
+            return data_copy
+    elif data is None:
+        print(data, "es nulo")
+        data_copy = compiled_regex.sub(new, "")
+        if data_copy == "":
+            return None
+        return data_copy
     else:
+        print(data, "es cualquier otra cosa")
+        print(compiled_regex)
         data_copy = compiled_regex.sub(new, data)
+        print("resultado", data_copy)
         return data_copy
 
 
