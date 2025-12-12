@@ -1,0 +1,412 @@
+[
+  {
+    "sha": "88b9c4920e643190eebddcf41e373856b5b9292e",
+    "node_id": "C_kwDOAE3WVdoAKDg4YjljNDkyMGU2NDMxOTBlZWJkZGNmNDFlMzczODU2YjViOTI5MmU",
+    "commit": {
+      "author": {
+        "name": "José Joaquín Atria",
+        "email": "jjatria@gmail.com",
+        "date": "2025-12-12T09:54:39Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2025-12-12T09:54:39Z"
+      },
+      "message": "Fix stder typo (#3446)\n\nThe manual was missing an \"r\" in \"stderr\".",
+      "tree": {
+        "sha": "03cb1e19da91f0df728914d4c8717f7490df04e4",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/03cb1e19da91f0df728914d4c8717f7490df04e4"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/88b9c4920e643190eebddcf41e373856b5b9292e",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJpO+ZfCRC1aQ7uu5UhlAAAQrkQAAXQ4aXoDr5ZmfjxtK9zkUdk\ngmDSPi6QcJExjEMcxf3ZN+jgS07r/HBa+fYcG1wkXaSuxviy4vCHVrkPuyBjCrDY\ntfa61wuwYQpmkeDjNrckn/nVx/b43SpR6sbw46tF7YTm2vfe8tFPSo3mCtkGdN54\njTm+Cl4naTyuY8TVTfi9XEN0oLswY267XSPx5UbSrxidXTwqoIdxdM+OlI7+JK7a\nhQDuhAfctc9oe0eQgGo+ibWm+jTR++R5/u3oqJlJ7ehyckGwewg5E8iMsPHQJZ2j\nJQlJ8YnHBVSXgVFAJWDW8ueQbT8vBhbWACtUqVe6sHQpxhiitpeNinK9tnpa8jmZ\nH7QcRGBdBhlom43/vFuY0PgXAfZn8rXkfvOK9lFNsKlqkDDDrfSnk3OuLOdZW2WN\nMppX4XqWMAycExPDxTgGlmLrG6p3jyGbS9mzm+8xWaSaIv9l3b2ZDrfuYk/tLqY7\ny2RXxfItaS7Fa5st6ymNwQj2q8uR+SRoanUW87UyqAgtmdgl5olxLsmWfYwNQ2EO\nKbMilpIZ5RmowEScsdIrkIt0jx2nvzId3sO8i2z6HUcN/DYVoc8OXxmaVnqq/W+O\nl2GZjXJqbrE4UQjcPXZS4KCQNHIoW5cCuOP5pAApsKHZwCYlh7GlEwgGxjX4CReQ\nS9PwgdckMnSapT3eb/8i\n=U2T3\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 03cb1e19da91f0df728914d4c8717f7490df04e4\nparent 0eb3da11ed489189963045a3d4eb21ba343736cb\nauthor José Joaquín Atria <jjatria@gmail.com> 1765533279 +0000\ncommitter GitHub <noreply@github.com> 1765533279 +0100\n\nFix stder typo (#3446)\n\nThe manual was missing an \"r\" in \"stderr\".",
+        "verified_at": "2025-12-12T09:54:40Z"
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/88b9c4920e643190eebddcf41e373856b5b9292e",
+    "html_url": "https://github.com/jqlang/jq/commit/88b9c4920e643190eebddcf41e373856b5b9292e",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/88b9c4920e643190eebddcf41e373856b5b9292e/comments",
+    "author": {
+      "login": "jjatria",
+      "id": 2975989,
+      "node_id": "MDQ6VXNlcjI5NzU5ODk=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2975989?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/jjatria",
+      "html_url": "https://github.com/jjatria",
+      "followers_url": "https://api.github.com/users/jjatria/followers",
+      "following_url": "https://api.github.com/users/jjatria/following{/other_user}",
+      "gists_url": "https://api.github.com/users/jjatria/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/jjatria/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/jjatria/subscriptions",
+      "organizations_url": "https://api.github.com/users/jjatria/orgs",
+      "repos_url": "https://api.github.com/users/jjatria/repos",
+      "events_url": "https://api.github.com/users/jjatria/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/jjatria/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "0eb3da11ed489189963045a3d4eb21ba343736cb",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/0eb3da11ed489189963045a3d4eb21ba343736cb",
+        "html_url": "https://github.com/jqlang/jq/commit/0eb3da11ed489189963045a3d4eb21ba343736cb"
+      }
+    ]
+  },
+  {
+    "sha": "0eb3da11ed489189963045a3d4eb21ba343736cb",
+    "node_id": "C_kwDOAE3WVdoAKDBlYjNkYTExZWQ0ODkxODk5NjMwNDVhM2Q0ZWIyMWJhMzQzNzM2Y2I",
+    "commit": {
+      "author": {
+        "name": "bigmoonbit",
+        "email": "bigmoonbit@outlook.com",
+        "date": "2025-11-27T09:44:45Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2025-11-27T09:44:45Z"
+      },
+      "message": "chore: fix typo in  tests/jq.test (#3441)\n\nfix typo in  tests/jq.test\n\nSigned-off-by: bigmoonbit <bigmoonbit@outlook.com>",
+      "tree": {
+        "sha": "e2504420cef793ea49748e5428139d9789039b26",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/e2504420cef793ea49748e5428139d9789039b26"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/0eb3da11ed489189963045a3d4eb21ba343736cb",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJpKB2NCRC1aQ7uu5UhlAAAbcYQAKB5FGCPeDEl8EgY8oBWypNz\nm8zskuQaRjB3dvap4Fa7tiP3qjcS0dw6qjZtai9e1WjxbxRzp2q1UYyZ5Ro5ZZ5Z\nu9MJru/jIdTpbhDWoeew/XTzum96xsFXy6O58cpglxo3dbcRet34F+IZcIJqIjuy\nFq3o5p87j2FdhkgtVF2H22YTY1IPodhmaQ/RpXukSv1JHE8G9BEGxWLPrtD1n6XZ\n0EoVZtMNUo+vLRZJR/VnIkH66vhZ5hq7buRUHSnuVKoOJNCp3A432qUU5o6jcjRW\n/nc0ILwpf81mVYtbs5b9cavegabg2WhXCP4s6MWvXuRTTxukxL4Q9bwISpDEdrwi\nekMz0sLG+O8nYFnCg+PUF6vZPquw9GsTNjAmYkloKmXlVZkOCa4DwIJqwUfqp5vN\nQAYRWbhuq+D/HL3zkhjV8IOOhLxjBoutt4GGagzoBOvWqSUnGD2KhP2bJ16An838\nnw0PtGSH0dDXRbDjbAlXARkhUMoKGLT9odHv+9nFkwMLKaYM+7wkASwzj4Zqmsph\nuam9+ZDqJqCutl1T7knfNPRD55yMgXOgwsIfX2B0p2Gk8GS8EHqBjw95ssYAC83E\nQAK642qBlAq/QAWlNW8nFOi80vjjIC6F/bd0+N4ozYD5mKpxEd8uhAV4WtKqIoM5\nxNgkawF+YZtn/KZ8gFxk\n=qDPk\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree e2504420cef793ea49748e5428139d9789039b26\nparent 39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551\nauthor bigmoonbit <bigmoonbit@outlook.com> 1764236685 +0800\ncommitter GitHub <noreply@github.com> 1764236685 +0100\n\nchore: fix typo in  tests/jq.test (#3441)\n\nfix typo in  tests/jq.test\n\nSigned-off-by: bigmoonbit <bigmoonbit@outlook.com>",
+        "verified_at": "2025-11-27T09:44:45Z"
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/0eb3da11ed489189963045a3d4eb21ba343736cb",
+    "html_url": "https://github.com/jqlang/jq/commit/0eb3da11ed489189963045a3d4eb21ba343736cb",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/0eb3da11ed489189963045a3d4eb21ba343736cb/comments",
+    "author": {
+      "login": "bigmoonbit",
+      "id": 233558371,
+      "node_id": "U_kgDODevRYw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/233558371?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/bigmoonbit",
+      "html_url": "https://github.com/bigmoonbit",
+      "followers_url": "https://api.github.com/users/bigmoonbit/followers",
+      "following_url": "https://api.github.com/users/bigmoonbit/following{/other_user}",
+      "gists_url": "https://api.github.com/users/bigmoonbit/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/bigmoonbit/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/bigmoonbit/subscriptions",
+      "organizations_url": "https://api.github.com/users/bigmoonbit/orgs",
+      "repos_url": "https://api.github.com/users/bigmoonbit/repos",
+      "events_url": "https://api.github.com/users/bigmoonbit/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/bigmoonbit/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551",
+        "html_url": "https://github.com/jqlang/jq/commit/39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551"
+      }
+    ]
+  },
+  {
+    "sha": "39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551",
+    "node_id": "C_kwDOAE3WVdoAKDM5NTcyZTEyOWYzYjFlNWQwY2Y4OTRkNmM4ZmU4YWI4ZWFhMDQ1NTE",
+    "commit": {
+      "author": {
+        "name": "dependabot[bot]",
+        "email": "49699333+dependabot[bot]@users.noreply.github.com",
+        "date": "2025-11-24T06:15:18Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2025-11-24T06:15:18Z"
+      },
+      "message": "build(deps): bump actions/checkout from 5 to 6 in the official-actions group (#3439)",
+      "tree": {
+        "sha": "b25538be72cde8987a505daf767ec87ffa9a0b55",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/b25538be72cde8987a505daf767ec87ffa9a0b55"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJpI/f2CRC1aQ7uu5UhlAAAQQwQABp1R7hhZBrApxquTLIWzFRW\n/qdurBwBveTT7pAut2AvRXJ5MCMNyKN9sgdMnBaZvXBwngTvdxVLo8vSqn0DgKn5\nAee+8IFyxvd5txwElbyu1rWpYuV7C/xZeTSZMasS+fs3XqjQnb/Vif5b3nENMce1\nFchCKef5idcbJUWcuLdQKN1MHnrfcxiHC6zrFwIJrYMsT7Ds40nYdCS6Y4zP3bPy\nAWDO0QMCZSAzDK1vw5nQh+GRi1HM1iC7uTqYNJb2psmjh88zt0X4VG/ZubmPHFnK\nDGg3H4dtF5iIEm1EP4EKFVCobuHIwtZTAiGjN+ybSvxKDnhyrk0pfotXEuvodk9g\nYYJbeMVkIO8YjiuNqn6Hp+NNCAv+daI7o30ggd9VNyOGNaCwDjTgrBQG0iHy9flr\nW5qwWla3W7gp4j5L2E/9d9PFTp8NUjd8TzUPqSSppL6OviPxU09u4eD12QzP0wLP\nU+L1SuyCh4D7WXkS+ow3nqaH7Md5svHWND2aqNbi4nutiPn2SBx1g65nijH4eWsk\nEPUo9K9i23z/4aHQeed6JJqdrI7BUxiUWvGXUNBglPb5hiQSXKw3+vQheDhGA7pm\nRg8Cy5Kp7Bu+ZJiOzFEVOuKcDvaOrPetVlqbAGzPQFvG7sZNj2stKCvZrVM19ALf\np4ZoAKaB/uy8TMfCJt+J\n=yi8U\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree b25538be72cde8987a505daf767ec87ffa9a0b55\nparent 482905914759ef8cfb85315f671e76130951db43\nauthor dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> 1763964918 +0900\ncommitter GitHub <noreply@github.com> 1763964918 +0900\n\nbuild(deps): bump actions/checkout from 5 to 6 in the official-actions group (#3439)\n\n",
+        "verified_at": "2025-11-24T06:15:19Z"
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551",
+    "html_url": "https://github.com/jqlang/jq/commit/39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/39572e129f3b1e5d0cf894d6c8fe8ab8eaa04551/comments",
+    "author": {
+      "login": "dependabot[bot]",
+      "id": 49699333,
+      "node_id": "MDM6Qm90NDk2OTkzMzM=",
+      "avatar_url": "https://avatars.githubusercontent.com/in/29110?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/dependabot%5Bbot%5D",
+      "html_url": "https://github.com/apps/dependabot",
+      "followers_url": "https://api.github.com/users/dependabot%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/dependabot%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/dependabot%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/dependabot%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/dependabot%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/dependabot%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/dependabot%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/dependabot%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/dependabot%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "482905914759ef8cfb85315f671e76130951db43",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/482905914759ef8cfb85315f671e76130951db43",
+        "html_url": "https://github.com/jqlang/jq/commit/482905914759ef8cfb85315f671e76130951db43"
+      }
+    ]
+  },
+  {
+    "sha": "482905914759ef8cfb85315f671e76130951db43",
+    "node_id": "C_kwDOAE3WVdoAKDQ4MjkwNTkxNDc1OWVmOGNmYjg1MzE1ZjY3MWU3NjEzMDk1MWRiNDM",
+    "commit": {
+      "author": {
+        "name": "Jan-Piet Mens",
+        "email": "jp@mens.de",
+        "date": "2025-11-18T00:49:59Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2025-11-18T00:49:59Z"
+      },
+      "message": "Add missing word in manual for rawfile (#3434)",
+      "tree": {
+        "sha": "895742b285f62897f61628093c9bceff2b8d3296",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/895742b285f62897f61628093c9bceff2b8d3296"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/482905914759ef8cfb85315f671e76130951db43",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJpG8K3CRC1aQ7uu5UhlAAAdj4QABX5X4XxF7w4cgLLh5LOEHUf\n/yb8FNXmPgPnI/UcMQfJx2htUvfYjKSQbPLG7qKLUCXJtz7MeXVHWSrcFnzWVr31\nNdXzkTkkXhon3TFRDSwzpkGqlIFb0QwIiE4i+vKDHModlXxOi0P8AMpOGr7rniHW\nILbO1gjNYGhOwDDUNRgzp8nCUdi2RGbhRlcQ6pUj1ulxZDWR2t/hC48/yhmkzl6v\n5e+XeBqtumSDWcr76X/NB/UBm78vwuLViJcLirg1JCJnWX8TJjV9la+O7FfBdE+C\nAxHmgzyQMkGLGgErS3TS+j6zOTAD5F3kbc6uyPxx01OToXfk1iERDaO9dLQ2MzOz\nAZvfhNDjiPq9dbynIqbIrFxsXAAOR7drkyYiV2Dx9nZ3ns77dVWez8nbsdpQJC5y\nGn2ts/uXQ9+381B8B52yWNeu8LxtaXKB81L839W1txHGmANpXYsSgciASkV7vpUs\n20IjUmW4umW8F7BTiZlN3SFniFMv9eWtNg+X8m7JKRzvmKWz0hCzOrYQbbjC8EVO\nzsHZENwU2hrz1SrnC+bQ5IAa2vOHS1K5fhzAJBnPSJXb64jFZvCF0IttN3Rb0Bd9\n96mdhd776QuGgbjjhNCgk36AU6K/3E1pQErzA/pZCvQBcXrtTGZUUbLI2wao4R1b\ne4Zpc1vIbNBtQzrl37N4\n=/Ze5\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 895742b285f62897f61628093c9bceff2b8d3296\nparent 33b3a68f9c32413cf3a1afa76addf0dd64c2922b\nauthor Jan-Piet Mens <jp@mens.de> 1763426999 +0100\ncommitter GitHub <noreply@github.com> 1763426999 +0900\n\nAdd missing word in manual for rawfile (#3434)\n\n",
+        "verified_at": "2025-11-18T00:50:00Z"
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/482905914759ef8cfb85315f671e76130951db43",
+    "html_url": "https://github.com/jqlang/jq/commit/482905914759ef8cfb85315f671e76130951db43",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/482905914759ef8cfb85315f671e76130951db43/comments",
+    "author": {
+      "login": "jpmens",
+      "id": 60706,
+      "node_id": "MDQ6VXNlcjYwNzA2",
+      "avatar_url": "https://avatars.githubusercontent.com/u/60706?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/jpmens",
+      "html_url": "https://github.com/jpmens",
+      "followers_url": "https://api.github.com/users/jpmens/followers",
+      "following_url": "https://api.github.com/users/jpmens/following{/other_user}",
+      "gists_url": "https://api.github.com/users/jpmens/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/jpmens/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/jpmens/subscriptions",
+      "organizations_url": "https://api.github.com/users/jpmens/orgs",
+      "repos_url": "https://api.github.com/users/jpmens/repos",
+      "events_url": "https://api.github.com/users/jpmens/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/jpmens/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "33b3a68f9c32413cf3a1afa76addf0dd64c2922b",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/33b3a68f9c32413cf3a1afa76addf0dd64c2922b",
+        "html_url": "https://github.com/jqlang/jq/commit/33b3a68f9c32413cf3a1afa76addf0dd64c2922b"
+      }
+    ]
+  },
+  {
+    "sha": "33b3a68f9c32413cf3a1afa76addf0dd64c2922b",
+    "node_id": "C_kwDOAE3WVdoAKDMzYjNhNjhmOWMzMjQxM2NmM2ExYWZhNzZhZGRmMGRkNjRjMjkyMmI",
+    "commit": {
+      "author": {
+        "name": "itchyny",
+        "email": "itchyny@cybozu.co.jp",
+        "date": "2025-11-04T12:21:21Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2025-11-04T12:21:21Z"
+      },
+      "message": "Fix expected value assertion (fix #3430, ref #3393) (#3431)",
+      "tree": {
+        "sha": "f387e5f4df8aee4a965219b66e0ab6b0e0683dbd",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/f387e5f4df8aee4a965219b66e0ab6b0e0683dbd"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/33b3a68f9c32413cf3a1afa76addf0dd64c2922b",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJpCe/BCRC1aQ7uu5UhlAAApPEQAEjwntx/yD06m0o2Gipt3nFb\nbFtk3DCF61bemCj1KwsabC493vXq0kckHBSa0gKL8edaRfrua6ucyNrlGD890Hzo\nStZT0jhFOMnMjV4RKIIPU5OREuUBZ+A0ZNflY/IWE6gvr6seC8d1h8n27d4go2We\nh02VnQJHkmxERCaTSIg64AdK54Vj3KJHVIKjbGGL6VworJkO5P+WfUbQayjs4P6m\nNcJHgVYhu7fmuaWFWl66MLpZKUPT7yB93FEZZwEhzBW4pCccMw/sQ9GHROP8EE1B\nRXfVkvqLYBlAw+uXXIPPcjsmvXbSIaUGYcTqz2nedAKX9FNBN+vW/g9QLQ4tuB0h\nr8UIKdCK+FIorxGydimbOwQi+1rkY5rTuvGX6w+8B6Lp/flBYh/M6IZK2nIDeUPN\nh2NX0pap1YeU4A62CjWvJZHJ/JmTfzksf1Q2eprm6XedD+VgPUp6fXUgJWP5A/5B\nBUQORa4kK1sbBIWTDG6PquO8TEGhV3P4K90WFkeZKW2zb1Xz3XIaSbpIzLU1Lu+7\nC9Nih9PNd+3Cs6csdvH8lVsMU88bqqDaxebuV4qXcXDvAp7gncQ6GkXqYmRqhPhE\nMyUzHt2VJc1mMIfky06Od41ai2O3I5of1MJypk2rw5KjCGR89ahjH6XIMfyvkwlV\njQ0DC0OTw+0Z3PtS6rLr\n=eLNW\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree f387e5f4df8aee4a965219b66e0ab6b0e0683dbd\nparent cff4e009828fa552275e3f024be757514ef8eb7e\nauthor itchyny <itchyny@cybozu.co.jp> 1762258881 +0900\ncommitter GitHub <noreply@github.com> 1762258881 +0900\n\nFix expected value assertion (fix #3430, ref #3393) (#3431)\n\n",
+        "verified_at": "2025-11-04T12:21:22Z"
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/33b3a68f9c32413cf3a1afa76addf0dd64c2922b",
+    "html_url": "https://github.com/jqlang/jq/commit/33b3a68f9c32413cf3a1afa76addf0dd64c2922b",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/33b3a68f9c32413cf3a1afa76addf0dd64c2922b/comments",
+    "author": {
+      "login": "itchyny",
+      "id": 375258,
+      "node_id": "MDQ6VXNlcjM3NTI1OA==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/375258?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/itchyny",
+      "html_url": "https://github.com/itchyny",
+      "followers_url": "https://api.github.com/users/itchyny/followers",
+      "following_url": "https://api.github.com/users/itchyny/following{/other_user}",
+      "gists_url": "https://api.github.com/users/itchyny/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/itchyny/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/itchyny/subscriptions",
+      "organizations_url": "https://api.github.com/users/itchyny/orgs",
+      "repos_url": "https://api.github.com/users/itchyny/repos",
+      "events_url": "https://api.github.com/users/itchyny/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/itchyny/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "cff4e009828fa552275e3f024be757514ef8eb7e",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/cff4e009828fa552275e3f024be757514ef8eb7e",
+        "html_url": "https://github.com/jqlang/jq/commit/cff4e009828fa552275e3f024be757514ef8eb7e"
+      }
+    ]
+  }
+]
