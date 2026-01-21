@@ -71,49 +71,37 @@ def key_substitute(data: dict, old_regex: str, new: str) -> dict:
 
 
 def value_substitute(data: dict | list, old_regex: str, new: str) -> dict:
-    compiled_regex = re.compile(old_regex)
+    compiled_regex = re.compile(old_regex, re.DOTALL)
     if isinstance(data, list):
-        print(data, "es lista")
         result = []
         for j in data:
             result.append(value_substitute(j, old_regex, new))
         return result
     elif isinstance(data, dict):
-        print(data, "es dicctionario")
         data_copy = data.copy()
         for i in data.keys():
             data_copy[i] = value_substitute(data[i], old_regex, new)
         return data_copy
     elif isinstance(data, bool):
-        print(data, "es bool")
         data_copy = compiled_regex.sub(new, str(data))
-        print("%" * 80)
         if re.match("^[Tt]rue$", data_copy):
-            print("a" * 80)
             return True
         if re.match("^[Ff]alse$", data_copy):
-            print("b" * 80)
             return False
-        print("%" * 80)
         return data_copy
     elif isinstance(data, Number):
-        print(data, "es numero")
         data_copy = compiled_regex.sub(new, str(data))
         try:
             return float(data_copy) if "." in data_copy else int(data_copy)
         except ValueError:
             return data_copy
     elif data is None:
-        print(data, "es nulo")
         data_copy = compiled_regex.sub(new, "")
         if data_copy == "":
             return None
         return data_copy
     else:
-        print(data, "es cualquier otra cosa")
-        print(compiled_regex)
         data_copy = compiled_regex.sub(new, data)
-        print("resultado", data_copy)
         return data_copy
 
 
