@@ -23,3 +23,18 @@ Y aun asi, no tengo todo el problema resuelto.
 
 Estuve buscando "useful data structures" y encontre esta: https://en.wikipedia.org/wiki/Trie
 La verdad pareciera que es lo que necesito.
+
+
+This is version v0.2 of jed.
+Jed is a command-line tool that aims to be the spiritual successor of sed but specialized in JSON data manipulation.
+I have written about this project before: https://camilo.matajira.com/?p=635 https://camilo.matajira.com/?p=638
+
+In this realease I added the following features:
+* Key substitution: You can now substitute keys in JSON objects using regex patterns.
+* Value substitution: You can now substitute values in JSON objects using regex patterns.
+* Output with Colors.
+
+The speed of the tool is remarkable for a tool written in Python. It shows the powes of json.loads and the regex modules,
+both written in C.
+
+Below is the code of the project with the unit test and examples. I still haven't upload it to Github, I am waiting for v1.0.
