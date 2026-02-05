@@ -51,15 +51,16 @@ fn print(v: &Value) {
     };
 }
 
-fn key_substitute(v: Value, old_regexp: String, new_regexp: String) -> Value {
+fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
     let re = Regex::new(&old_regexp).unwrap();
     // print(&v);
     let v = match v {
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
-                let new_key = re.replace(&k, &new_regexp).into_owned();
-                new_map.insert(new_key, v);
+                let new_key = re.replace(&k, new_regexp).into_owned();
+                let new_v = key_substitute(v, old_regexp, new_regexp);
+                new_map.insert(new_key, new_v);
             }
             Value::Object(new_map)
         }
@@ -80,7 +81,53 @@ mod tests {
         let some_json = r#"
         {"sha": "0eb3da11ed489189963045a3d4eb21ba343736cb", "node_id": "C_kwDOAE3WVdoAKDBlYjNkYTExZWQ0ODkxODk5NjMwNDVhM2Q0ZWIyMWJhMzQzNzM2Y2I"}"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = key_substitute(v, String::from("sha"), String::from("new_sha"));
+        v = key_substitute(v, &String::from("sha"), &String::from("new_sha"));
         assert_eq!(v["new_sha"], "0eb3da11ed489189963045a3d4eb21ba343736cb");
+        // println!("{}", v.to_string());
+        // assert!(false);
+    }
+
+    #[test]
+    fn test_key_substitute_recursivity() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = key_substitute(v, &String::from("a"), &String::from("o"));
+        assert_eq!(v["commit"]["outhor"]["nome"], "bigmoonbit");
+    }
+    #[test]
+    fn test_key_substitute_repeated_keys_keeps_last() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = key_substitute(v, &String::from("nombre"), &String::from("name"));
+        assert_eq!(v["commit"]["author"]["name"], "hola");
+    }
+    #[test]
+    fn test_key_substitute_recursivity_inside_lists() {
+        let some_json = r#"
+        {
+          "commit": [
+            { "author": "camilo" },
+            { "author": "andres" }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = key_substitute(v, &String::from("author"), &String::from("autor"));
+        assert_eq!(v["commit"][0]["autor"], "camilo");
+        assert_eq!(v["commit"][1]["autor"], "andres");
     }
 }
