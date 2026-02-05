@@ -183,8 +183,16 @@ mod tests {
         assert_eq!(v["commit"]["author"]["name"], "bigmAAAnbit");
     }
     #[test]
-    fn test_value_substitute_2() {
-        let mut v: Value = Value::String("camilo".to_string());
-        assert_eq!(v, "camilo".to_string());
+    fn test_value_substitute_recursivity_inside_lists() {
+        let some_json = r#"
+        {
+          "commit": [
+            { "author": "camilo" },
+            { "author": "andres" }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from("andres"), &String::from("mata"));
+        assert_eq!(v["commit"][1]["author"], "mata");
     }
 }
