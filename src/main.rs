@@ -65,7 +65,14 @@ fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
             Value::Object(new_map)
         }
         Value::String(v) => Value::String(v),
-        Value::Array(v) => Value::Array(v),
+        Value::Array(v) => {
+            let mut new_vec = Vec::new();
+            for value in v {
+                let new_v = key_substitute(value, old_regexp, new_regexp);
+                new_vec.push(new_v);
+            }
+            Value::Array(new_vec)
+        }
         Value::Null => Value::Null,
         Value::Bool(v) => Value::Bool(v),
         Value::Number(v) => Value::Number(v),
