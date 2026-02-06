@@ -313,4 +313,14 @@ mod tests {
         v = value_substitute(v, &String::from(".+"), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
+    #[test]
+    fn test_value_substitute_new_lines_can_be_replaced() {
+        let some_json = r#"
+        {
+        "sha": "a\\nb"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
 }
