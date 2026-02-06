@@ -108,7 +108,19 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
             Value::Array(new_vec)
         }
         Value::Null => Value::Null,
-        Value::Bool(v) => Value::Bool(v),
+        Value::Bool(v) => {
+            let old_bool = v.to_string();
+            let old_bool_replaced = re.replace(&old_bool, new_regexp).into_owned();
+            if &old_bool == &old_bool_replaced {
+                return Value::Bool(v);
+            } else {
+                match &old_bool_replaced.parse::<bool>() {
+                    Ok(new_bool) => return Value::Bool(*new_bool),
+                    Err(_) => (),
+                }
+            }
+            return Value::String(old_bool_replaced);
+        }
         Value::Number(v) => {
             let old_number = v.to_string();
             let old_number_replaced = re.replace(&old_number, new_regexp).into_owned();
@@ -236,5 +248,19 @@ mod tests {
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         v = value_substitute(v, &String::from("5"), &String::from("6"));
         assert_eq!(v["commit"]["author"]["name"], 6);
+    }
+    #[test]
+    fn test_value_substitute_booleans_can_be_modified() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": true
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from("true"), &String::from("false"));
+        assert_eq!(v["commit"]["author"]["name"], false);
     }
 }
