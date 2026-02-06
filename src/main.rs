@@ -273,4 +273,14 @@ mod tests {
         v = value_substitute(v, &String::from(".+"), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
+    #[test]
+    fn test_value_substitute_numbers_can_be_replaced_2() {
+        let some_json = r#"
+        {
+        "sha": 0
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
 }
