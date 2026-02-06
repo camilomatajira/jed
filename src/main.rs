@@ -107,7 +107,27 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
             }
             Value::Array(new_vec)
         }
-        Value::Null => Value::Null,
+        Value::Null => {
+            let old_null = "null".to_string();
+            let old_null_replaced = re.replace(&old_null, new_regexp).into_owned();
+            if &old_null == &old_null_replaced {
+                return Value::Null;
+            } else {
+                match &old_null_replaced.parse::<i128>() {
+                    Ok(int) => return Value::Number(Number::from_i128(*int).unwrap()),
+                    Err(_) => (),
+                }
+                match &old_null_replaced.parse::<f64>() {
+                    Ok(float) => return Value::Number(Number::from_f64(*float).unwrap()),
+                    Err(_) => (),
+                }
+                match &old_null_replaced.parse::<bool>() {
+                    Ok(new_bool) => return Value::Bool(*new_bool),
+                    Err(_) => (),
+                }
+            }
+            return Value::String(old_null_replaced);
+        }
         Value::Bool(v) => {
             let old_bool = v.to_string();
             let old_bool_replaced = re.replace(&old_bool, new_regexp).into_owned();
@@ -278,6 +298,16 @@ mod tests {
         let some_json = r#"
         {
         "sha": 0
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
+    #[test]
+    fn test_value_substitute_nulls_can_be_replaced() {
+        let some_json = r#"
+        {
+        "sha": null 
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         v = value_substitute(v, &String::from(".+"), &String::from("hola"));
