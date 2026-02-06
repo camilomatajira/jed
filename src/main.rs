@@ -263,4 +263,14 @@ mod tests {
         v = value_substitute(v, &String::from("true"), &String::from("false"));
         assert_eq!(v["commit"]["author"]["name"], false);
     }
+    #[test]
+    fn test_value_substitute_random_bug() {
+        let some_json = r#"
+        {
+        "sha": "03cb1e19da91f0df728914d4c8717f7490df04e4"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
 }
