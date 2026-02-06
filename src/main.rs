@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde_json::{Map, Result, Value};
+use serde_json::{Map, Number, Result, Value};
 fn main() {
     untyped_example();
 }
@@ -109,7 +109,23 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         }
         Value::Null => Value::Null,
         Value::Bool(v) => Value::Bool(v),
-        Value::Number(v) => Value::Number(v),
+        Value::Number(v) => {
+            let old_number = v.to_string();
+            let old_number_replaced = re.replace(&old_number, new_regexp).into_owned();
+            if &old_number == &old_number_replaced {
+                return Value::Number(v);
+            } else {
+                match &old_number_replaced.parse::<i128>() {
+                    Ok(int) => return Value::Number(Number::from_i128(*int).unwrap()),
+                    Err(_) => (),
+                }
+                match &old_number_replaced.parse::<f64>() {
+                    Ok(float) => return Value::Number(Number::from_f64(*float).unwrap()),
+                    Err(_) => (),
+                }
+            }
+            return Value::String(old_number_replaced);
+        }
     };
     return v;
 }
@@ -206,5 +222,19 @@ mod tests {
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         v = value_substitute(v, &String::from("andres"), &String::from("mata"));
         assert_eq!(v[1]["author"], "mata");
+    }
+    #[test]
+    fn test_value_substitute_numbers_can_be_replaced() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": 5
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from("5"), &String::from("6"));
+        assert_eq!(v["commit"]["author"]["name"], 6);
     }
 }
