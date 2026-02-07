@@ -1,7 +1,76 @@
+use clap::Parser as ClapParser;
+use pest::Parser;
+use pest_derive::Parser;
 use regex::Regex;
 use serde_json::{Map, Number, Result, Value};
+
+#[derive(Parser)]
+#[grammar = "grammar.pest"]
+struct SedParser;
+// use std::fs;
+// use std::io::Read;
+
+/// Example: Options and flags
+#[derive(ClapParser)]
+struct Cli {
+    /// Count words (-w, --words)
+    #[clap(short, long, action)]
+    command: String,
+    /// input_files, optional positional
+    input_file: Option<String>,
+}
+
 fn main() {
-    untyped_example();
+    let cli = Cli::parse();
+    let mut file_contents = String::new();
+
+    match cli.input_file {
+        Some(ref input_file) => {
+            // println!("Input files: {:?}", input_file);
+            file_contents = std::fs::read_to_string(&input_file)
+                .expect("Something went wrong reading the file")
+                .parse::<String>()
+                .unwrap();
+            // process_input_files(input_files, &cli);
+        }
+        None => {
+            // println!("stdin");
+            std::process::exit(1);
+            // process_stdin(&cli);
+        }
+    }
+    // match cli.command { Some(command) => {
+    //         // process_input_files(input_files, &cli);
+    //     }
+    //     None => {
+    //         println!("stdin");
+    //         std::process::exit(1);
+    //         // process_stdin(&cli);
+    //     }
+    // }
+
+    let input = &cli.command;
+    let parsed = SedParser::parse(Rule::substitute, input).expect("failed to parse");
+    let mut pattern = String::new();
+    let mut replacement = String::new();
+    let mut flags = String::new();
+    for pair in parsed.into_iter().next().unwrap().into_inner() {
+        match pair.as_rule() {
+            Rule::pattern => pattern = pair.as_str().to_string(),
+            Rule::replacement => replacement = pair.as_str().to_string(),
+            Rule::flags => flags = pair.as_str().to_string(),
+            // Rule::delimiter => {}l
+            _ => {}
+        }
+    }
+    // println!("Pattern: {}", pattern);
+    // println!("Replacement: {}", replacement);
+    // println!("Flags: {}", flags);
+
+    let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
+
+    v = value_substitute(v, &pattern, &replacement);
+    println!("{}", serde_json::to_string_pretty(&v).unwrap());
 }
 
 fn untyped_example() -> Result<()> {
@@ -57,7 +126,7 @@ fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
-                let new_key = re.replace(&k, new_regexp).into_owned();
+                let new_key = re.replace_all(&k, new_regexp).into_owned();
                 let new_v = key_substitute(v, old_regexp, new_regexp);
                 new_map.insert(new_key, new_v);
             }
@@ -84,20 +153,20 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
-                // let new_key = re.replace(&k, new_regexp).into_owned();
+                // let new_key = re.replace_all(&k, new_regexp).into_owned();
                 let new_v = value_substitute(v, old_regexp, new_regexp);
                 new_map.insert(k, new_v);
             }
             Value::Object(new_map)
         }
-        // Value::String(v) => Value::String(re.replace(&v, new_regexp).into_owned()),
+        // Value::String(v) => Value::String(re.replace_all(&v, new_regexp).into_owned()),
         Value::String(v) => {
-            println!("value: {}", v);
-            println!(
-                "value replaced: {}",
-                re.replace(&v, new_regexp).into_owned()
-            );
-            Value::String(re.replace(&v, new_regexp).into_owned())
+            // println!("value: {}", v);
+            // println!(
+            //     "value replaced: {}",
+            //     re.replace_all(&v, new_regexp).into_owned()
+            // );
+            Value::String(re.replace_all(&v, new_regexp).into_owned())
         }
         Value::Array(v) => {
             let mut new_vec = Vec::new();
@@ -109,7 +178,7 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         }
         Value::Null => {
             let old_null = "null".to_string();
-            let old_null_replaced = re.replace(&old_null, new_regexp).into_owned();
+            let old_null_replaced = re.replace_all(&old_null, new_regexp).into_owned();
             if &old_null == &old_null_replaced {
                 return Value::Null;
             } else {
@@ -130,7 +199,7 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         }
         Value::Bool(v) => {
             let old_bool = v.to_string();
-            let old_bool_replaced = re.replace(&old_bool, new_regexp).into_owned();
+            let old_bool_replaced = re.replace_all(&old_bool, new_regexp).into_owned();
             if &old_bool == &old_bool_replaced {
                 return Value::Bool(v);
             } else {
@@ -143,7 +212,7 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         }
         Value::Number(v) => {
             let old_number = v.to_string();
-            let old_number_replaced = re.replace(&old_number, new_regexp).into_owned();
+            let old_number_replaced = re.replace_all(&old_number, new_regexp).into_owned();
             if &old_number == &old_number_replaced {
                 return Value::Number(v);
             } else {
@@ -229,6 +298,20 @@ mod tests {
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         v = value_substitute(v, &String::from("oo"), &String::from("AAA"));
         assert_eq!(v["commit"]["author"]["name"], "bigmAAAnbit");
+    }
+    #[test]
+    fn test_value_substitute_2() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = value_substitute(v, &String::from("o"), &String::from("A"));
+        assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
     }
     #[test]
     fn test_value_substitute_recursivity_inside_lists() {
