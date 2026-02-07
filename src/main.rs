@@ -31,23 +31,11 @@ fn main() {
                 .expect("Something went wrong reading the file")
                 .parse::<String>()
                 .unwrap();
-            // process_input_files(input_files, &cli);
         }
         None => {
-            // println!("stdin");
             std::process::exit(1);
-            // process_stdin(&cli);
         }
     }
-    // match cli.command { Some(command) => {
-    //         // process_input_files(input_files, &cli);
-    //     }
-    //     None => {
-    //         println!("stdin");
-    //         std::process::exit(1);
-    //         // process_stdin(&cli);
-    //     }
-    // }
 
     let input = &cli.command;
     let parsed = SedParser::parse(Rule::substitute, input).expect("failed to parse");
@@ -59,65 +47,14 @@ fn main() {
             Rule::pattern => pattern = pair.as_str().to_string(),
             Rule::replacement => replacement = pair.as_str().to_string(),
             Rule::flags => flags = pair.as_str().to_string(),
-            // Rule::delimiter => {}l
             _ => {}
         }
     }
-    // println!("Pattern: {}", pattern);
-    // println!("Replacement: {}", replacement);
-    // println!("Flags: {}", flags);
 
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
 
     v = value_substitute(v, &pattern, &replacement);
     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-}
-
-fn untyped_example() -> Result<()> {
-    // Some JSON input data as a &str. Maybe this comes from the user.
-    let data = r#"
-        {
-            "name": "John Doe",
-            "age": 43,
-            "phones": [
-                "+44 1234567",
-                "+44 2345678"
-            ]
-        }"#;
-
-    // Parse the string of data into serde_json::Value.
-    let v: Value = serde_json::from_str(data)?;
-
-    // Access parts of the data by indexing with square brackets.
-    println!("Please call {} at the number {}", v["name"], v["phones"][0]);
-    print(&v);
-
-    Ok(())
-}
-fn print(v: &Value) {
-    match v {
-        Value::Object(v) => {
-            println! {"Object with {} keys", v.len()};
-            for (k, v) in v {
-                println! {"Key: {}", k};
-                print(v);
-            }
-            // print(&v);
-        }
-        Value::String(v) => {
-            println! {"String with length {}", v};
-        }
-        Value::Array(v) => {
-            println! {"Array of length {}", v.len()};
-        }
-        Value::Null => {}
-        Value::Bool(v) => {
-            println! {"Boolean with value {}", v};
-        }
-        Value::Number(v) => {
-            println! {"Number with value {}", v};
-        }
-    };
 }
 
 fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
@@ -153,21 +90,12 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
-                // let new_key = re.replace_all(&k, new_regexp).into_owned();
                 let new_v = value_substitute(v, old_regexp, new_regexp);
                 new_map.insert(k, new_v);
             }
             Value::Object(new_map)
         }
-        // Value::String(v) => Value::String(re.replace_all(&v, new_regexp).into_owned()),
-        Value::String(v) => {
-            // println!("value: {}", v);
-            // println!(
-            //     "value replaced: {}",
-            //     re.replace_all(&v, new_regexp).into_owned()
-            // );
-            Value::String(re.replace_all(&v, new_regexp).into_owned())
-        }
+        Value::String(v) => Value::String(re.replace_all(&v, new_regexp).into_owned()),
         Value::Array(v) => {
             let mut new_vec = Vec::new();
             for value in v {

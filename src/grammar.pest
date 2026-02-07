@@ -1,0 +1,11 @@
+substitute = {
+    "s" ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
+}
+
+delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
+pattern     = { (!PEEK ~ ANY)* }
+replacement = { (!PEEK ~ ANY)* }
+
+flags = { flag+ }
+flag  = { "g" | "i" | "p" | ASCII_DIGIT+ }
+
