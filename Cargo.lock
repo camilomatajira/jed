@@ -154,6 +154,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "colored_json",
+ "libc",
  "pest",
  "pest_derive",
  "regex",

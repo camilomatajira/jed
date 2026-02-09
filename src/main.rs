@@ -14,7 +14,7 @@ struct SedParser;
 /// Example: Options and flags
 #[derive(ClapParser)]
 struct Cli {
-    /// Count words (-w, --words)
+    /// Jed command (-c, --command)
     #[clap(short, long, action)]
     command: String,
     /// input_files, optional positional
@@ -56,6 +56,13 @@ fn main() {
 
     v = value_substitute(v, &pattern, &replacement);
     // println!("{}", serde_json::to_string_pretty(&v).unwrap());
+    //
+    //
+    // Restore default SIGPIPE handling
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+
     println!("{}", to_colored_json_auto(&v).unwrap());
 }
 
@@ -336,4 +343,20 @@ mod tests {
         v = value_substitute(v, &String::from(".+"), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
+    // #[test]
+    // fn test_filter_1() {
+    //     let some_json = r#"
+    //     let some_json = r#"
+    //     {
+    //       "commit": {
+    //         "author": {
+    //           "name": "bigmoonbit",
+    //           "nombre": "hola"
+    //         }
+    //     }
+    //     }"#;
+    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
+    //     v = filter(v, &String::from("name"));
+    //     assert_eq!(v["sha"], "hola");
+    // }
 }
