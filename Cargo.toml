@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = {version="4.0", features=["derive"]}
+colored_json = "5.0.0"
 pest = "2.8.6"
 pest_derive = "2.8.6"
 regex = "1.12.3"

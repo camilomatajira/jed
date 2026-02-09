@@ -1,4 +1,5 @@
 use clap::Parser as ClapParser;
+use colored_json::to_colored_json_auto;
 use pest::Parser;
 use pest_derive::Parser;
 use regex::Regex;
@@ -54,7 +55,8 @@ fn main() {
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
 
     v = value_substitute(v, &pattern, &replacement);
-    println!("{}", serde_json::to_string_pretty(&v).unwrap());
+    // println!("{}", serde_json::to_string_pretty(&v).unwrap());
+    println!("{}", to_colored_json_auto(&v).unwrap());
 }
 
 fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
