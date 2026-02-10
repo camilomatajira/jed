@@ -518,17 +518,9 @@ mod tests {
         let input = String::from("/c/s/sha/new_sha/g");
         // let input = String::from("s/sha/new_sha/g");
         let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-        let mut pattern = String::new();
-        let mut replacement = String::new();
-        let mut flags = String::new();
-        for pair in parsed.into_iter().next().unwrap().into_inner() {
-            match pair.as_rule() {
-                Rule::pattern => pattern = pair.as_str().to_string(),
-                Rule::replacement => replacement = pair.as_str().to_string(),
-                Rule::flags => flags = pair.as_str().to_string(),
-                _ => {}
-            }
-        }
+        let input = String::from("/c/ s/sha/new_sha/g");
+        // let input = String::from("s/sha/new_sha/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
     }
     // Posibilidades
     // 1. partir el string del filtro. y pasarlo como si fuera un stack al filtro

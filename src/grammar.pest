@@ -2,11 +2,12 @@ substitute = {
     range_regex? ~ "s" ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
 }
 
-range_regex      = { "/" ~ ANY ~ "/" }
+range_regex      = { "/" ~ ANY ~ "/" ~ ("./" ~ ANY ~ "/")*}
 
 delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
 pattern     = { (!PEEK ~ ANY)* }
 replacement = { (!PEEK ~ ANY)* }
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 
 flags = { flag+ }
 flag  = { "g" | "i" | "p" | ASCII_DIGIT+ }
