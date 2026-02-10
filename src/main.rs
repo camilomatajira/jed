@@ -456,24 +456,80 @@ mod tests {
         assert_eq!(v["author"]["name"], "bigmoonbit");
         assert_eq!(v["author"]["nombre"], Value::Null);
     }
-    // #[test]
-    // fn test_filter_4() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit",
-    //           "nombre": "hola"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![String::from("author"), String::from("name")];
-    //     v = filter_key(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
-    //     assert_eq!(v["commit"]["author"]["nombre"], Value::Null);
-    // }
+    #[test]
+    fn test_filter_4() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            String::from("commit"),
+            String::from("author"),
+            String::from("name"),
+        ];
+        v = filter_key(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
+        assert_eq!(v["commit"]["author"]["nombre"], Value::Null);
+    }
+    #[test]
+    fn test_filter_5() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("commit")];
+        v = filter_key(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
+        assert_eq!(v["commit"]["author"]["nombre"], "hola");
+    }
+    #[test]
+    fn test_grammar_1() {
+        // let input = String::from("/c/./d/ s/sha/new_sha/g");
+        let input = String::from("s/sha/new_sha/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let mut pattern = String::new();
+        let mut replacement = String::new();
+        let mut flags = String::new();
+        for pair in parsed.into_iter().next().unwrap().into_inner() {
+            match pair.as_rule() {
+                Rule::pattern => pattern = pair.as_str().to_string(),
+                Rule::replacement => replacement = pair.as_str().to_string(),
+                Rule::flags => flags = pair.as_str().to_string(),
+                _ => {}
+            }
+        }
+    }
+    #[test]
+    fn test_grammar_2() {
+        let input = String::from("/c/s/sha/new_sha/g");
+        // let input = String::from("s/sha/new_sha/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let mut pattern = String::new();
+        let mut replacement = String::new();
+        let mut flags = String::new();
+        for pair in parsed.into_iter().next().unwrap().into_inner() {
+            match pair.as_rule() {
+                Rule::pattern => pattern = pair.as_str().to_string(),
+                Rule::replacement => replacement = pair.as_str().to_string(),
+                Rule::flags => flags = pair.as_str().to_string(),
+                _ => {}
+            }
+        }
+    }
     // Posibilidades
     // 1. partir el string del filtro. y pasarlo como si fuera un stack al filtro
 }

@@ -1,6 +1,8 @@
 substitute = {
-    "s" ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
+    range_regex? ~ "s" ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
 }
+
+range_regex      = { "/" ~ ANY ~ "/" }
 
 delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
 pattern     = { (!PEEK ~ ANY)* }
