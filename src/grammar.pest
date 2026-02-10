@@ -2,7 +2,7 @@ substitute = {
     range_regex? ~ "s" ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
 }
 
-range_regex      = { "/" ~ ANY ~ "/" ~ ("./" ~ ANY ~ "/")*}
+range_regex      = { "/" ~ ASCII_ALPHANUMERIC+ ~ "/" ~ ("./" ~ ASCII_ALPHANUMERIC+ ~ "/")*}
 
 delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
 pattern     = { (!PEEK ~ ANY)* }

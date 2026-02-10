@@ -43,18 +43,28 @@ fn main() {
     let mut pattern = String::new();
     let mut replacement = String::new();
     let mut flags = String::new();
+    let mut range_regex = String::new();
     for pair in parsed.into_iter().next().unwrap().into_inner() {
         match pair.as_rule() {
             Rule::pattern => pattern = pair.as_str().to_string(),
             Rule::replacement => replacement = pair.as_str().to_string(),
             Rule::flags => flags = pair.as_str().to_string(),
+            Rule::range_regex => range_regex = pair.as_str().to_string(),
             _ => {}
         }
     }
+    let vec_range_regex = range_regex
+        .replace("/", "")
+        .split(".")
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
 
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
-
-    v = value_substitute(v, &pattern, &replacement);
+    if vec_range_regex.len() > 0 {
+        v = filter_key_and_substitute_value(v, &vec_range_regex, &pattern, &replacement);
+    } else {
+        v = value_substitute(v, &pattern, &replacement);
+    }
     // println!("{}", serde_json::to_string_pretty(&v).unwrap());
     //
     //
@@ -219,6 +229,76 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
                     } else {
                         return serde_json::Value::Null;
                     }
+                }
+                Value::String(v) => serde_json::Value::Null,
+                Value::Array(v) => serde_json::Value::Null,
+                Value::Null => serde_json::Value::Null,
+                Value::Bool(v) => serde_json::Value::Null,
+                Value::Number(v) => serde_json::Value::Null,
+            };
+        } // _ => (),
+    };
+    return response;
+}
+fn filter_key_and_substitute_value(
+    v: Value,
+    stack: &Vec<String>,
+    old_regexp: &str,
+    new_regex: &str,
+) -> Value {
+    let mut response = Value::Null;
+    match &stack.len() {
+        0 => (),
+        1 => {
+            response = match v {
+                Value::Object(current) => {
+                    let mut new_stack = stack.clone();
+                    let re = Regex::new(&new_stack.remove(0)).unwrap();
+                    let mut new_map: Map<String, Value> = Map::new();
+                    for (k, v) in &current {
+                        if re.find(&k).is_some() {
+                            new_map.insert(
+                                k.clone(),
+                                value_substitute(
+                                    v.clone(),
+                                    &old_regexp.to_string(),
+                                    &new_regex.to_string(),
+                                ),
+                            );
+                        } else {
+                            new_map.insert(k.clone(), v.clone());
+                        }
+                    }
+                    return serde_json::Value::Object(new_map);
+                }
+                Value::String(v) => serde_json::Value::Null,
+                Value::Array(v) => serde_json::Value::Null,
+                Value::Null => serde_json::Value::Null,
+                Value::Bool(v) => serde_json::Value::Null,
+                Value::Number(v) => serde_json::Value::Null,
+            };
+        }
+        _ => {
+            response = match v {
+                Value::Object(current) => {
+                    let mut new_stack = stack.clone();
+                    let re = Regex::new(&new_stack.remove(0)).unwrap();
+                    let mut new_map: Map<String, Value> = Map::new();
+                    for (k, v) in &current {
+                        if re.find(&k).is_some() {
+                            // response = serde_json::Value::Object(current.clone());
+                            let new_v = filter_key_and_substitute_value(
+                                v.clone(),
+                                &new_stack,
+                                old_regexp,
+                                new_regex,
+                            );
+                            new_map.insert(k.clone(), new_v);
+                        } else {
+                            new_map.insert(k.clone(), v.clone());
+                        }
+                    }
+                    return serde_json::Value::Object(new_map);
                 }
                 Value::String(v) => serde_json::Value::Null,
                 Value::Array(v) => serde_json::Value::Null,
@@ -540,6 +620,60 @@ mod tests {
                 _ => {}
             }
         }
+    }
+    #[test]
+    fn test_grammar_3() {
+        let input = String::from("/commit/s/a/XXXX/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let mut pattern = String::new();
+        let mut replacement = String::new();
+        let mut flags = String::new();
+        let mut range_regex = String::new();
+        for pair in parsed.into_iter().next().unwrap().into_inner() {
+            match pair.as_rule() {
+                Rule::pattern => assert_eq!(pair.as_str(), "a"),
+                Rule::replacement => assert_eq!(pair.as_str(), "XXXX"),
+                Rule::flags => assert_eq!(pair.as_str(), "g"),
+                Rule::range_regex => assert_eq!(pair.as_str(), "/commit/"),
+                _ => {}
+            }
+        }
+    }
+    #[test]
+    fn test_filter_substitute_1() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hoola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            String::from("commit"),
+            String::from("author"),
+            String::from("name"),
+        ];
+        let old_regex = String::from("oo");
+        let new_regex = String::from("AA");
+        v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
+        assert_eq!(v["commit"]["author"]["nombre"], "hoola");
+    }
+    #[test]
+    fn test_parsing_regex() {
+        let range_regex = String::from("/c/./d/./e/");
+        let answer = vec![String::from("c"), String::from("d"), String::from("e")];
+
+        let vec_range_regex = range_regex
+            .replace("/", "")
+            .split(".")
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        assert_eq!(vec_range_regex, answer);
     }
     // Posibilidades
     // 1. partir el string del filtro. y pasarlo como si fuera un stack al filtro
