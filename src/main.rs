@@ -167,6 +167,69 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
     };
     return v;
 }
+fn filter_key(v: Value, stack: &Vec<String>) -> Value {
+    let mut response = Value::Null;
+    match &stack.len() {
+        0 => (),
+        1 => {
+            response = match v {
+                Value::Object(current) => {
+                    let mut new_stack = stack.clone();
+                    let re = Regex::new(&new_stack.remove(0)).unwrap();
+                    let mut new_map: Map<String, Value> = Map::new();
+                    let mut found_something = false;
+                    for (k, v) in &current {
+                        if re.find(&k).is_some() {
+                            new_map.insert(k.clone(), v.clone());
+                            found_something = true;
+                        }
+                    }
+                    if found_something {
+                        return serde_json::Value::Object(new_map);
+                    } else {
+                        return serde_json::Value::Null;
+                    }
+                }
+                Value::String(v) => serde_json::Value::Null,
+                Value::Array(v) => serde_json::Value::Null,
+                Value::Null => serde_json::Value::Null,
+                Value::Bool(v) => serde_json::Value::Null,
+                Value::Number(v) => serde_json::Value::Null,
+            };
+        }
+        _ => {
+            response = match v {
+                Value::Object(current) => {
+                    let mut new_stack = stack.clone();
+                    let re = Regex::new(&new_stack.remove(0)).unwrap();
+                    let mut new_map: Map<String, Value> = Map::new();
+                    let mut found_something = false;
+                    for (k, v) in &current {
+                        if re.find(&k).is_some() {
+                            // response = serde_json::Value::Object(current.clone());
+                            let new_v = filter_key(v.clone(), &new_stack);
+                            if new_v != Value::Null {
+                                new_map.insert(k.clone(), new_v);
+                            }
+                            found_something = true;
+                        }
+                    }
+                    if found_something {
+                        return serde_json::Value::Object(new_map);
+                    } else {
+                        return serde_json::Value::Null;
+                    }
+                }
+                Value::String(v) => serde_json::Value::Null,
+                Value::Array(v) => serde_json::Value::Null,
+                Value::Null => serde_json::Value::Null,
+                Value::Bool(v) => serde_json::Value::Null,
+                Value::Number(v) => serde_json::Value::Null,
+            };
+        } // _ => (),
+    };
+    return response;
+}
 
 mod tests {
     use super::*;
@@ -343,9 +406,58 @@ mod tests {
         v = value_substitute(v, &String::from(".+"), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
+    #[test]
+    fn test_filter_0() {
+        let some_json = r#"
+        {
+            "name": "camilo"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("nothing")];
+        v = filter_key(v, &stack);
+        assert_eq!(v["name"], Value::Null);
+    }
+    #[test]
+    fn test_filter_1() {
+        let some_json = r#"
+        {
+            "name": "camilo"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("name")];
+        v = filter_key(v, &stack);
+        assert_eq!(v["name"], "camilo");
+    }
+    #[test]
+    fn test_filter_2() {
+        let some_json = r#"
+        {
+            "name": "camilo",
+            "nombre": "andres"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("name")];
+        v = filter_key(v, &stack);
+        assert_eq!(v["nombre"], Value::Null);
+    }
+    #[test]
+    fn test_filter_3() {
+        let some_json = r#"
+        {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("author"), String::from("name")];
+        v = filter_key(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["author"]["name"], "bigmoonbit");
+        assert_eq!(v["author"]["nombre"], Value::Null);
+    }
     // #[test]
-    // fn test_filter_1() {
-    //     let some_json = r#"
+    // fn test_filter_4() {
     //     let some_json = r#"
     //     {
     //       "commit": {
@@ -356,7 +468,12 @@ mod tests {
     //     }
     //     }"#;
     //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = filter(v, &String::from("name"));
-    //     assert_eq!(v["sha"], "hola");
+    //     let stack = vec![String::from("author"), String::from("name")];
+    //     v = filter_key(v, &stack);
+    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
+    //     assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
+    //     assert_eq!(v["commit"]["author"]["nombre"], Value::Null);
     // }
+    // Posibilidades
+    // 1. partir el string del filtro. y pasarlo como si fuera un stack al filtro
 }
