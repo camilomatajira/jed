@@ -290,7 +290,27 @@ fn filter_key_and_substitute_value(
                     }
                 }
                 Value::String(_) => serde_json::Value::Null,
-                Value::Array(_) => serde_json::Value::Null,
+                Value::Array(v) => {
+                    let mut new_stack = stack.clone();
+                    match new_stack.remove(0) {
+                        RangeType::Key(_) => return serde_json::Value::Null,
+                        RangeType::Array(array_range) => {
+                            let mut new_vec: Vec<Value> = Vec::new();
+                            for (i, val) in v.iter().enumerate() {
+                                if i >= array_range.begin && i <= array_range.end {
+                                    new_vec.push(value_substitute(
+                                        val.clone(),
+                                        &old_regexp,
+                                        &replace_with,
+                                    ));
+                                } else {
+                                    new_vec.push(val.clone());
+                                }
+                            }
+                            return serde_json::Value::Array(new_vec);
+                        }
+                    }
+                }
                 Value::Null => serde_json::Value::Null,
                 Value::Bool(_) => serde_json::Value::Null,
                 Value::Number(_) => serde_json::Value::Null,
@@ -701,28 +721,31 @@ mod tests {
         assert_eq!(v["commit"][0]["name"], "cxmilo");
         assert_eq!(v["commit"][1]["name"], "xndres");
     }
-    // #[test]
-    // fn test_filter_substitute_with_arrays_and_ranges() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         {
-    //           "name": "camilo"
-    //         },
-    //         {
-    //           "name": "andres"
-    //         }
-    //         ]
-    //     }"#;
-    // let mut v: Value = serde_json::from_str(some_json).unwrap();
-    // let stack = vec![RangeType::Key(Regex::new("commit").unwrap())];
-    // let old_regex = String::from("a");
-    // let new_regex = String::from("x");
-    // v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
-    // println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    // assert_eq!(v["commit"][0]["name"], "cxmilo");
-    // assert_eq!(v["commit"][1]["name"], "xndres");
-    // }
+    #[test]
+    fn test_filter_substitute_with_arrays_and_ranges() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        let search_regex = Regex::new("a").unwrap();
+        let replace_with = String::from("x");
+        v = filter_key_and_substitute_value(v, &stack, &search_regex, &replace_with);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "cxmilo");
+        assert_eq!(v["commit"][1]["name"], "andres");
+    }
     #[test]
     fn test_parsing_regex() {
         let range_regex = String::from("/c/./d/./e/");
