@@ -3,7 +3,7 @@ use colored_json::to_colored_json_auto;
 use pest::Parser;
 use pest_derive::Parser;
 use regex::Regex;
-use serde_json::{Map, Number, Result, Value};
+use serde_json::{Map, Number, Value};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -21,9 +21,18 @@ struct Cli {
     input_file: Option<String>,
 }
 
+struct ArrayRange {
+    begin: usize,
+    end: usize,
+}
+enum RangeType {
+    Key(Regex),
+    Array(ArrayRange),
+}
+
 fn main() {
     let cli = Cli::parse();
-    let mut file_contents = String::new();
+    let file_contents: String;
 
     match cli.input_file {
         Some(ref input_file) => {
@@ -42,13 +51,13 @@ fn main() {
     let parsed = SedParser::parse(Rule::substitute, input).expect("failed to parse");
     let mut pattern = String::new();
     let mut replacement = String::new();
-    let mut flags = String::new();
+    let mut _flags = String::new();
     let mut range_regex = String::new();
     for pair in parsed.into_iter().next().unwrap().into_inner() {
         match pair.as_rule() {
             Rule::pattern => pattern = pair.as_str().to_string(),
             Rule::replacement => replacement = pair.as_str().to_string(),
-            Rule::flags => flags = pair.as_str().to_string(),
+            Rule::flags => _flags = pair.as_str().to_string(),
             Rule::range_regex => range_regex = pair.as_str().to_string(),
             _ => {}
         }
@@ -200,11 +209,11 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
                         return serde_json::Value::Null;
                     }
                 }
-                Value::String(v) => serde_json::Value::Null,
-                Value::Array(v) => serde_json::Value::Null,
+                Value::String(_) => serde_json::Value::Null,
+                Value::Array(_) => serde_json::Value::Null,
                 Value::Null => serde_json::Value::Null,
-                Value::Bool(v) => serde_json::Value::Null,
-                Value::Number(v) => serde_json::Value::Null,
+                Value::Bool(_) => serde_json::Value::Null,
+                Value::Number(_) => serde_json::Value::Null,
             };
         }
         _ => {
@@ -230,11 +239,11 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
                         return serde_json::Value::Null;
                     }
                 }
-                Value::String(v) => serde_json::Value::Null,
-                Value::Array(v) => serde_json::Value::Null,
+                Value::String(_) => serde_json::Value::Null,
+                Value::Array(_) => serde_json::Value::Null,
                 Value::Null => serde_json::Value::Null,
-                Value::Bool(v) => serde_json::Value::Null,
-                Value::Number(v) => serde_json::Value::Null,
+                Value::Bool(_) => serde_json::Value::Null,
+                Value::Number(_) => serde_json::Value::Null,
             };
         } // _ => (),
     };
@@ -271,11 +280,11 @@ fn filter_key_and_substitute_value(
                     }
                     return serde_json::Value::Object(new_map);
                 }
-                Value::String(v) => serde_json::Value::Null,
-                Value::Array(v) => serde_json::Value::Null,
+                Value::String(_) => serde_json::Value::Null,
+                Value::Array(_) => serde_json::Value::Null,
                 Value::Null => serde_json::Value::Null,
-                Value::Bool(v) => serde_json::Value::Null,
-                Value::Number(v) => serde_json::Value::Null,
+                Value::Bool(_) => serde_json::Value::Null,
+                Value::Number(_) => serde_json::Value::Null,
             };
         }
         _ => {
@@ -300,11 +309,11 @@ fn filter_key_and_substitute_value(
                     }
                     return serde_json::Value::Object(new_map);
                 }
-                Value::String(v) => serde_json::Value::Null,
-                Value::Array(v) => serde_json::Value::Null,
+                Value::String(_) => serde_json::Value::Null,
+                Value::Array(_) => serde_json::Value::Null,
                 Value::Null => serde_json::Value::Null,
-                Value::Bool(v) => serde_json::Value::Null,
-                Value::Number(v) => serde_json::Value::Null,
+                Value::Bool(_) => serde_json::Value::Null,
+                Value::Number(_) => serde_json::Value::Null,
             };
         } // _ => (),
     };
@@ -581,14 +590,14 @@ mod tests {
         // let input = String::from("/c/./d/ s/sha/new_sha/g");
         let input = String::from("s/sha/new_sha/g");
         let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-        let mut pattern = String::new();
-        let mut replacement = String::new();
-        let mut flags = String::new();
+        let mut _pattern: String;
+        let mut _replacement: String;
+        let mut _flags: String;
         for pair in parsed.into_iter().next().unwrap().into_inner() {
             match pair.as_rule() {
-                Rule::pattern => pattern = pair.as_str().to_string(),
-                Rule::replacement => replacement = pair.as_str().to_string(),
-                Rule::flags => flags = pair.as_str().to_string(),
+                Rule::pattern => _pattern = pair.as_str().to_string(),
+                Rule::replacement => _replacement = pair.as_str().to_string(),
+                Rule::flags => _flags = pair.as_str().to_string(),
                 _ => {}
             }
         }
@@ -597,20 +606,16 @@ mod tests {
     fn test_grammar_2() {
         let input = String::from("/c/s/sha/new_sha/g");
         // let input = String::from("s/sha/new_sha/g");
-        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
         let input = String::from("/c/ s/sha/new_sha/g");
         // let input = String::from("s/sha/new_sha/g");
-        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
         let input = String::from("/c/./d/ s/sha/new_sha/g");
         // let input = String::from("s/sha/new_sha/g");
-        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
         let input = String::from("/c/./d/./e/ s/sha/new_sha/g");
         // let input = String::from("s/sha/new_sha/g");
         let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-        let mut pattern = String::new();
-        let mut replacement = String::new();
-        let mut flags = String::new();
-        let mut range_regex = String::new();
         for pair in parsed.into_iter().next().unwrap().into_inner() {
             match pair.as_rule() {
                 Rule::pattern => assert_eq!(pair.as_str(), "sha"),
@@ -625,10 +630,6 @@ mod tests {
     fn test_grammar_3() {
         let input = String::from("/commit/s/a/XXXX/g");
         let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-        let mut pattern = String::new();
-        let mut replacement = String::new();
-        let mut flags = String::new();
-        let mut range_regex = String::new();
         for pair in parsed.into_iter().next().unwrap().into_inner() {
             match pair.as_rule() {
                 Rule::pattern => assert_eq!(pair.as_str(), "a"),
@@ -663,6 +664,50 @@ mod tests {
         assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
         assert_eq!(v["commit"]["author"]["nombre"], "hoola");
     }
+    #[test]
+    fn test_filter_substitute_with_arrays() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("commit")];
+        let old_regex = String::from("a");
+        let new_regex = String::from("x");
+        v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "cxmilo");
+        assert_eq!(v["commit"][1]["name"], "xndres");
+    }
+    // #[test]
+    // fn test_filter_substitute_with_arrays_and_ranges() {
+    //     let some_json = r#"
+    //     {
+    //       "commit": [
+    //         {
+    //           "name": "camilo"
+    //         },
+    //         {
+    //           "name": "andres"
+    //         }
+    //         ]
+    //     }"#;
+    // let mut v: Value = serde_json::from_str(some_json).unwrap();
+    // let stack = vec![RangeType::Key(Regex::new("commit").unwrap())];
+    // let old_regex = String::from("a");
+    // let new_regex = String::from("x");
+    // v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
+    // println!("{}", serde_json::to_string_pretty(&v).unwrap());
+    // assert_eq!(v["commit"][0]["name"], "cxmilo");
+    // assert_eq!(v["commit"][1]["name"], "xndres");
+    // }
     #[test]
     fn test_parsing_regex() {
         let range_regex = String::from("/c/./d/./e/");
