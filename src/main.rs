@@ -69,10 +69,12 @@ fn main() {
         .collect::<Vec<String>>();
 
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
+    let search_pattern = Regex::new(&pattern).unwrap();
+    let replace_with = String::from(&replacement);
     if vec_range_regex.len() > 0 {
-        v = filter_key_and_substitute_value(v, &vec_range_regex, &pattern, &replacement);
+        v = filter_key_and_substitute_value(v, &vec_range_regex, &search_pattern, &replace_with);
     } else {
-        v = value_substitute(v, &pattern, &replacement);
+        v = value_substitute(v, &search_pattern, &replace_with);
     }
     // println!("{}", serde_json::to_string_pretty(&v).unwrap());
     //
@@ -112,29 +114,30 @@ fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
     };
     return v;
 }
-fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
-    let re = Regex::new(&old_regexp).unwrap();
+fn value_substitute(v: Value, search_regexp: &Regex, replace_with: &String) -> Value {
     let v = match v {
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
-                let new_v = value_substitute(v, old_regexp, new_regexp);
+                let new_v = value_substitute(v, search_regexp, replace_with);
                 new_map.insert(k, new_v);
             }
             Value::Object(new_map)
         }
-        Value::String(v) => Value::String(re.replace_all(&v, new_regexp).into_owned()),
+        Value::String(v) => Value::String(search_regexp.replace_all(&v, replace_with).into_owned()),
         Value::Array(v) => {
             let mut new_vec = Vec::new();
             for value in v {
-                let new_v = value_substitute(value, old_regexp, new_regexp);
+                let new_v = value_substitute(value, search_regexp, replace_with);
                 new_vec.push(new_v);
             }
             Value::Array(new_vec)
         }
         Value::Null => {
             let old_null = "null".to_string();
-            let old_null_replaced = re.replace_all(&old_null, new_regexp).into_owned();
+            let old_null_replaced = search_regexp
+                .replace_all(&old_null, replace_with)
+                .into_owned();
             if &old_null == &old_null_replaced {
                 return Value::Null;
             } else {
@@ -155,7 +158,9 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         }
         Value::Bool(v) => {
             let old_bool = v.to_string();
-            let old_bool_replaced = re.replace_all(&old_bool, new_regexp).into_owned();
+            let old_bool_replaced = search_regexp
+                .replace_all(&old_bool, replace_with)
+                .into_owned();
             if &old_bool == &old_bool_replaced {
                 return Value::Bool(v);
             } else {
@@ -168,7 +173,9 @@ fn value_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value
         }
         Value::Number(v) => {
             let old_number = v.to_string();
-            let old_number_replaced = re.replace_all(&old_number, new_regexp).into_owned();
+            let old_number_replaced = search_regexp
+                .replace_all(&old_number, replace_with)
+                .into_owned();
             if &old_number == &old_number_replaced {
                 return Value::Number(v);
             } else {
@@ -252,8 +259,8 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
 fn filter_key_and_substitute_value(
     v: Value,
     stack: &Vec<String>,
-    old_regexp: &str,
-    new_regex: &str,
+    old_regexp: &Regex,
+    replace_with: &String,
 ) -> Value {
     let mut response = Value::Null;
     match &stack.len() {
@@ -268,11 +275,7 @@ fn filter_key_and_substitute_value(
                         if re.find(&k).is_some() {
                             new_map.insert(
                                 k.clone(),
-                                value_substitute(
-                                    v.clone(),
-                                    &old_regexp.to_string(),
-                                    &new_regex.to_string(),
-                                ),
+                                value_substitute(v.clone(), &old_regexp, &replace_with),
                             );
                         } else {
                             new_map.insert(k.clone(), v.clone());
@@ -300,7 +303,7 @@ fn filter_key_and_substitute_value(
                                 v.clone(),
                                 &new_stack,
                                 old_regexp,
-                                new_regex,
+                                replace_with,
                             );
                             new_map.insert(k.clone(), new_v);
                         } else {
@@ -385,7 +388,7 @@ mod tests {
         }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from("oo"), &String::from("AAA"));
+        v = value_substitute(v, &Regex::new("oo").unwrap(), &String::from("AAA"));
         assert_eq!(v["commit"]["author"]["name"], "bigmAAAnbit");
     }
     #[test]
@@ -399,7 +402,7 @@ mod tests {
         }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from("o"), &String::from("A"));
+        v = value_substitute(v, &Regex::new("o").unwrap(), &String::from("A"));
         assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
     }
     #[test]
@@ -412,7 +415,7 @@ mod tests {
             ]
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from("andres"), &String::from("mata"));
+        v = value_substitute(v, &Regex::new("andres").unwrap(), &String::from("mata"));
         assert_eq!(v["commit"][1]["author"], "mata");
     }
     #[test]
@@ -424,7 +427,7 @@ mod tests {
         ]
         "#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from("andres"), &String::from("mata"));
+        v = value_substitute(v, &Regex::new("andres").unwrap(), &String::from("mata"));
         assert_eq!(v[1]["author"], "mata");
     }
     #[test]
@@ -438,7 +441,7 @@ mod tests {
         }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from("5"), &String::from("6"));
+        v = value_substitute(v, &Regex::new("5").unwrap(), &String::from("6"));
         assert_eq!(v["commit"]["author"]["name"], 6);
     }
     #[test]
@@ -452,7 +455,7 @@ mod tests {
         }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from("true"), &String::from("false"));
+        v = value_substitute(v, &Regex::new("true").unwrap(), &String::from("false"));
         assert_eq!(v["commit"]["author"]["name"], false);
     }
     #[test]
@@ -462,7 +465,7 @@ mod tests {
         "sha": "03cb1e19da91f0df728914d4c8717f7490df04e4"
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        v = value_substitute(v, &Regex::new(".+").unwrap(), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
     #[test]
@@ -472,7 +475,7 @@ mod tests {
         "sha": 0
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        v = value_substitute(v, &Regex::new(".+").unwrap(), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
     #[test]
@@ -482,7 +485,7 @@ mod tests {
         "sha": null 
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        v = value_substitute(v, &Regex::new(".+").unwrap(), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
     #[test]
@@ -492,7 +495,7 @@ mod tests {
         "sha": "a\\nb"
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = value_substitute(v, &String::from(".+"), &String::from("hola"));
+        v = value_substitute(v, &Regex::new(".+").unwrap(), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
     #[test]
@@ -657,7 +660,7 @@ mod tests {
             String::from("author"),
             String::from("name"),
         ];
-        let old_regex = String::from("oo");
+        let old_regex = Regex::new("oo").unwrap();
         let new_regex = String::from("AA");
         v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
@@ -679,7 +682,7 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let stack = vec![String::from("commit")];
-        let old_regex = String::from("a");
+        let old_regex = Regex::new("a").unwrap();
         let new_regex = String::from("x");
         v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
