@@ -21,10 +21,12 @@ struct Cli {
     input_file: Option<String>,
 }
 
+#[derive(Clone)]
 struct ArrayRange {
     begin: usize,
     end: usize,
 }
+#[derive(Clone)]
 enum RangeType {
     Key(Regex),
     Array(ArrayRange),
@@ -65,8 +67,8 @@ fn main() {
     let vec_range_regex = range_regex
         .replace("/", "")
         .split(".")
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>();
+        .map(|s| RangeType::Key(Regex::new(s).unwrap()))
+        .collect::<Vec<RangeType>>();
 
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
     let search_pattern = Regex::new(&pattern).unwrap();
@@ -258,7 +260,7 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
 }
 fn filter_key_and_substitute_value(
     v: Value,
-    stack: &Vec<String>,
+    stack: &Vec<RangeType>,
     old_regexp: &Regex,
     replace_with: &String,
 ) -> Value {
@@ -269,19 +271,23 @@ fn filter_key_and_substitute_value(
             response = match v {
                 Value::Object(current) => {
                     let mut new_stack = stack.clone();
-                    let re = Regex::new(&new_stack.remove(0)).unwrap();
-                    let mut new_map: Map<String, Value> = Map::new();
-                    for (k, v) in &current {
-                        if re.find(&k).is_some() {
-                            new_map.insert(
-                                k.clone(),
-                                value_substitute(v.clone(), &old_regexp, &replace_with),
-                            );
-                        } else {
-                            new_map.insert(k.clone(), v.clone());
+                    match new_stack.remove(0) {
+                        RangeType::Key(re) => {
+                            let mut new_map: Map<String, Value> = Map::new();
+                            for (k, v) in &current {
+                                if re.find(&k).is_some() {
+                                    new_map.insert(
+                                        k.clone(),
+                                        value_substitute(v.clone(), &old_regexp, &replace_with),
+                                    );
+                                } else {
+                                    new_map.insert(k.clone(), v.clone());
+                                }
+                            }
+                            return serde_json::Value::Object(new_map);
                         }
+                        RangeType::Array(_) => return serde_json::Value::Null,
                     }
-                    return serde_json::Value::Object(new_map);
                 }
                 Value::String(_) => serde_json::Value::Null,
                 Value::Array(_) => serde_json::Value::Null,
@@ -294,23 +300,29 @@ fn filter_key_and_substitute_value(
             response = match v {
                 Value::Object(current) => {
                     let mut new_stack = stack.clone();
-                    let re = Regex::new(&new_stack.remove(0)).unwrap();
-                    let mut new_map: Map<String, Value> = Map::new();
-                    for (k, v) in &current {
-                        if re.find(&k).is_some() {
-                            // response = serde_json::Value::Object(current.clone());
-                            let new_v = filter_key_and_substitute_value(
-                                v.clone(),
-                                &new_stack,
-                                old_regexp,
-                                replace_with,
-                            );
-                            new_map.insert(k.clone(), new_v);
-                        } else {
-                            new_map.insert(k.clone(), v.clone());
+                    match new_stack.remove(0) {
+                        RangeType::Key(re) => {
+                            let mut new_map: Map<String, Value> = Map::new();
+                            for (k, v) in &current {
+                                if re.find(&k).is_some() {
+                                    // response = serde_json::Value::Object(current.clone());
+                                    let new_v = filter_key_and_substitute_value(
+                                        v.clone(),
+                                        &new_stack,
+                                        old_regexp,
+                                        replace_with,
+                                    );
+                                    new_map.insert(k.clone(), new_v);
+                                } else {
+                                    new_map.insert(k.clone(), v.clone());
+                                }
+                            }
+                            return serde_json::Value::Object(new_map);
+                        }
+                        RangeType::Array(_) => {
+                            return serde_json::Value::Null;
                         }
                     }
-                    return serde_json::Value::Object(new_map);
                 }
                 Value::String(_) => serde_json::Value::Null,
                 Value::Array(_) => serde_json::Value::Null,
@@ -656,9 +668,9 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let stack = vec![
-            String::from("commit"),
-            String::from("author"),
-            String::from("name"),
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Key(Regex::new("author").unwrap()),
+            RangeType::Key(Regex::new("name").unwrap()),
         ];
         let old_regex = Regex::new("oo").unwrap();
         let new_regex = String::from("AA");
@@ -681,7 +693,7 @@ mod tests {
             ]
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![String::from("commit")];
+        let stack = vec![RangeType::Key(Regex::new("commit").unwrap())];
         let old_regex = Regex::new("a").unwrap();
         let new_regex = String::from("x");
         v = filter_key_and_substitute_value(v, &stack, &old_regex, &new_regex);
