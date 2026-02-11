@@ -747,6 +747,31 @@ mod tests {
         assert_eq!(v["commit"][1]["name"], "andres");
     }
     #[test]
+    fn test_filter_substitute_with_arrays_and_ranges_2() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Key(Regex::new("name").unwrap()),
+        ];
+        let search_regex = Regex::new("a").unwrap();
+        let replace_with = String::from("x");
+        v = filter_key_and_substitute_value(v, &stack, &search_regex, &replace_with);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], Value::Null);
+        assert_eq!(v["commit"][1]["name"], Value::Null);
+    }
+    #[test]
     fn test_parsing_regex() {
         let range_regex = String::from("/c/./d/./e/");
         let answer = vec![String::from("c"), String::from("d"), String::from("e")];
