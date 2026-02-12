@@ -98,6 +98,67 @@ fn main() {
     println!("{}", to_colored_json_auto(&v).unwrap());
 }
 
+fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
+    let mut stack = Vec::new();
+    let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+    let mut pattern = String::from("");
+    let mut replacement = String::from("");
+    let mut flags = String::from("");
+    let mut sed_command = ' ';
+    for pair in parsed.into_iter().next().unwrap().into_inner() {
+        match pair.as_rule() {
+            Rule::range_regex => {
+                for inner_pair in pair.into_inner() {
+                    match inner_pair.as_rule() {
+                        Rule::key_range_regex => {
+                            stack.push(RangeType::Key(
+                                Regex::new(inner_pair.as_str().trim_matches('/')).unwrap(),
+                            ));
+                        }
+                        Rule::array_range_regex => {
+                            let mut begin = 0;
+                            let mut end = 0;
+                            for ip in inner_pair.into_inner() {
+                                match ip.as_rule() {
+                                    Rule::array_range_regex_begin => {
+                                        begin = ip.as_str().parse::<usize>().unwrap();
+                                    }
+                                    Rule::array_range_regex_end => {
+                                        end = ip.as_str().parse::<usize>().unwrap();
+                                    }
+                                    _ => (),
+                                }
+                            }
+
+                            stack.push(RangeType::Array(ArrayRange { begin, end }));
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            Rule::sed_command => {
+                sed_command = pair.as_str().chars().next().unwrap();
+            }
+            Rule::pattern => pattern = pair.as_str().to_string(),
+            Rule::replacement => replacement = pair.as_str().to_string(),
+            Rule::flags => flags = pair.as_str().to_string(),
+            _ => {}
+        }
+    }
+
+    if sed_command == 's' {
+        return (
+            stack,
+            JedCommand::Substitute(SubstituteParams {
+                pattern,
+                replacement,
+                flags,
+            }),
+        );
+    }
+    return (stack, JedCommand::Other(String::from("temporary")));
+}
+
 fn key_substitute(v: Value, old_regexp: &String, new_regexp: &String) -> Value {
     let re = Regex::new(&old_regexp).unwrap();
     let v = match v {
@@ -686,63 +747,60 @@ mod tests {
     }
     #[test]
     fn test_grammar_4() {
-        fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
-            let stack = Vec::new();
-            let result_command = JedCommand::Other(String::from("a"));
-            let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-            let mut range_regex = String::new();
-            let substitue = false;
-            for pair in parsed.into_iter().next().unwrap().into_inner() {
-                match pair.as_rule() {
-                    // Rule::range_regex => {
-                    //     for inner_pair in pair.into_inner() {
-                    //         match inner_pair.as_rule() {}
-                    //     }
-                    // }
-                    Rule::sed_command => {
-                        // let sed_command = pair.as_str().to_string();
-                        return (
-                            stack,
-                            JedCommand::Substitute(SubstituteParams {
-                                pattern: String::from("a"),
-                                replacement: String::from("a"),
-                                flags: String::from("a"),
-                            }),
-                        );
-                    }
-                    _ => {}
-                }
-            }
-            return (stack, JedCommand::Other(String::from("temporary")));
-        }
         let input = String::from("1,3s/a/XXXX/g");
-        // let stack command = parse_grammar(&input);
         let (stack, command) = parse_grammar(&input);
         match command {
-            JedCommand::Substitute(_) => assert!(true),
+            JedCommand::Substitute(params) => {
+                assert_eq!(params.pattern, "a");
+                assert_eq!(params.replacement, "XXXX");
+                assert_eq!(params.flags, "g");
+            }
             _ => assert!(false),
         }
-
-        // let input = String::from("/cam/.1,3./andres/ s/a/XXXX/g");
-        // let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-        // for pair in parsed.into_iter().next().unwrap().into_inner() {
-        //     println!("Rule: {:?}, Value: {}", pair.as_rule(), pair.as_str());
-        //     match pair.as_rule() {
-        //         Rule::pattern => assert_eq!(pair.as_str(), "a"),
-        //         Rule::replacement => assert_eq!(pair.as_str(), "XXXX"),
-        //         Rule::flags => assert_eq!(pair.as_str(), "g"),
-        //         // Rule::range_regex => assert_eq!(pair.as_str(), "1,3"),
-        //         Rule::range_regex => {
-        //             for child in pair.into_inner() {
-        //                 println!("{:?} = {}", child.as_rule(), child.as_str());
-        //             }
-        //             assert!(false);
-        //         }
-        //         Rule::key_range_regex => assert_eq!(pair.as_str(), "g"),
-        //         Rule::array_range_regex => assert_eq!(pair.as_str(), "g"),
-        //         _ => {}
-        //     }
-        // }
+        assert_eq!(stack.len(), 1);
+        match stack.first().unwrap() {
+            RangeType::Array(array_range) => {
+                assert_eq!(array_range.begin, 1);
+                assert_eq!(array_range.end, 3);
+            }
+            _ => assert!(false),
+        }
+        let input = String::from("/first_key/.1,3./second_key/s/a/b/g");
+        let (stack, command) = parse_grammar(&input);
+        match command {
+            JedCommand::Substitute(params) => {
+                assert_eq!(params.pattern, "a");
+                assert_eq!(params.replacement, "b");
+                assert_eq!(params.flags, "g");
+            }
+            _ => assert!(false),
+        }
+        assert_eq!(stack.len(), 3);
+        match &stack[0] {
+            RangeType::Key(key_regex) => {
+                assert_eq!(
+                    key_regex.as_str(),
+                    Regex::new("first_key").unwrap().as_str()
+                );
+            }
+            _ => assert!(false),
+        }
+        match &stack[1] {
+            RangeType::Array(array_range) => {
+                assert_eq!(array_range.begin, 1);
+                assert_eq!(array_range.end, 3);
+            }
+            _ => assert!(false),
+        }
+        match &stack[2] {
+            RangeType::Key(key_regex) => {
+                assert_eq!(
+                    key_regex.as_str(),
+                    Regex::new("second_key").unwrap().as_str()
+                );
+            }
+            _ => assert!(false),
+        }
     }
     #[test]
     fn test_filter_substitute_1() {

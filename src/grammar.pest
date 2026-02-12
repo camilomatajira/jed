@@ -4,8 +4,10 @@ substitute = {
 
 sed_command = { ASCII_ALPHA }
 range_regex      = { (key_range_regex | array_range_regex) ~ ( "." ~ (key_range_regex | array_range_regex))* }
-key_range_regex = { "/" ~ ASCII_ALPHANUMERIC+ ~ "/" }
-array_range_regex = { ASCII_DIGIT* ~ "," ~ ASCII_DIGIT* }
+key_range_regex = { "/" ~ (!"/"~ANY)+ ~ "/" }
+array_range_regex = { array_range_regex_begin+ ~ "," ~ array_range_regex_end+ }
+array_range_regex_begin = { ASCII_DIGIT }
+array_range_regex_end = { ASCII_DIGIT }
 
 delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
 pattern     = { (!PEEK ~ ANY)* }
