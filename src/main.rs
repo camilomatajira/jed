@@ -324,9 +324,80 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
     return response;
 }
 
-///
 /// This function performs the substitution only in the values that match the filter "stack"
-///
+fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
+    let mut response = Value::Null;
+    match &stack.len() {
+        0 => (),
+        1 => {
+            response = match v {
+                Value::Object(current) => {
+                    let mut new_stack = stack.clone();
+                    match new_stack.remove(0) {
+                        RangeType::Key(re) => {
+                            let mut new_map: Map<String, Value> = Map::new();
+                            for (k, v) in &current {
+                                if re.find(&k).is_some() {
+                                    new_map.insert(k.clone(), v.clone());
+                                }
+                            }
+                            return serde_json::Value::Object(new_map);
+                        }
+                        RangeType::Array(_) => return serde_json::Value::Null,
+                    }
+                }
+                Value::String(_) => serde_json::Value::Null,
+                Value::Array(v) => {
+                    let mut new_stack = stack.clone();
+                    match new_stack.remove(0) {
+                        RangeType::Key(_) => return serde_json::Value::Null,
+                        RangeType::Array(array_range) => {
+                            let mut new_vec: Vec<Value> = Vec::new();
+                            for (i, val) in v.iter().enumerate() {
+                                if i >= array_range.begin && i <= array_range.end {
+                                    new_vec.push(val.clone());
+                                }
+                            }
+                            return serde_json::Value::Array(new_vec);
+                        }
+                    }
+                }
+                Value::Null => serde_json::Value::Null,
+                Value::Bool(_) => serde_json::Value::Null,
+                Value::Number(_) => serde_json::Value::Null,
+            };
+        }
+        _ => {
+            response = match v {
+                Value::Object(current) => {
+                    let mut new_stack = stack.clone();
+                    match new_stack.remove(0) {
+                        RangeType::Key(re) => {
+                            let mut new_map: Map<String, Value> = Map::new();
+                            for (k, v) in &current {
+                                if re.find(&k).is_some() {
+                                    let new_v = print_on_specified_ranges(v.clone(), &new_stack);
+                                    new_map.insert(k.clone(), new_v);
+                                }
+                            }
+                            return serde_json::Value::Object(new_map);
+                        }
+                        RangeType::Array(_) => {
+                            return serde_json::Value::Null;
+                        }
+                    }
+                }
+                Value::String(_) => serde_json::Value::Null,
+                Value::Array(_) => serde_json::Value::Null,
+                Value::Null => serde_json::Value::Null,
+                Value::Bool(_) => serde_json::Value::Null,
+                Value::Number(_) => serde_json::Value::Null,
+            };
+        } // _ => (),
+    };
+    return response;
+}
+/// This function performs the substitution only in the values that match the filter "stack"
 fn substitute_values_on_specified_ranges(
     v: Value,
     stack: &Vec<RangeType>,
@@ -910,6 +981,33 @@ mod tests {
             .collect::<Vec<String>>();
         assert_eq!(vec_range_regex, answer);
     }
-    // Posibilidades
-    // 1. partir el string del filtro. y pasarlo como si fuera un stack al filtro
+    #[test]
+    fn test_print_1() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        v = print_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "camilo");
+        assert_eq!(v["commit"][1]["name"], Value::Null);
+
+        let stack = vec![RangeType::Key(Regex::new("doesnt-exists").unwrap())];
+        v = print_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], Value::Null);
+        assert_eq!(v["commit"][1]["name"], Value::Null);
+    }
 }
