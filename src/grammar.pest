@@ -1,8 +1,11 @@
 substitute = {
-    range_regex? ~ "s" ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
+    range_regex? ~ sed_command ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
 }
 
-range_regex      = { "/" ~ ASCII_ALPHANUMERIC+ ~ "/" ~ ("./" ~ ASCII_ALPHANUMERIC+ ~ "/")*}
+sed_command = { ASCII_ALPHA }
+range_regex      = { (key_range_regex | array_range_regex) ~ ( "." ~ (key_range_regex | array_range_regex))* }
+key_range_regex = { "/" ~ ASCII_ALPHANUMERIC+ ~ "/" }
+array_range_regex = { ASCII_DIGIT* ~ "," ~ ASCII_DIGIT* }
 
 delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
 pattern     = { (!PEEK ~ ANY)* }
