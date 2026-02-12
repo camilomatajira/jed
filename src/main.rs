@@ -36,12 +36,17 @@ enum JedCommand {
     Other(String),
 }
 struct SubstituteParams {
-    pattern: String,
+    pattern: Regex,
     replacement: String,
     flags: String,
 }
 
 fn main() {
+    // Restore default SIGPIPE handling
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+
     let cli = Cli::parse();
     let file_contents: String;
 
@@ -59,40 +64,23 @@ fn main() {
     }
 
     let input = &cli.command;
-    let parsed = SedParser::parse(Rule::substitute, input).expect("failed to parse");
-    let mut pattern = String::new();
-    let mut replacement = String::new();
-    let mut _flags = String::new();
-    let mut range_regex = String::new();
-    for pair in parsed.into_iter().next().unwrap().into_inner() {
-        match pair.as_rule() {
-            Rule::pattern => pattern = pair.as_str().to_string(),
-            Rule::replacement => replacement = pair.as_str().to_string(),
-            Rule::flags => _flags = pair.as_str().to_string(),
-            Rule::range_regex => range_regex = pair.as_str().to_string(),
-            _ => {}
-        }
-    }
-    let vec_range_regex = range_regex
-        .replace("/", "")
-        .split(".")
-        .map(|s| RangeType::Key(Regex::new(s).unwrap()))
-        .collect::<Vec<RangeType>>();
-
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
-    let search_pattern = Regex::new(&pattern).unwrap();
-    let replace_with = String::from(&replacement);
-    if vec_range_regex.len() > 0 {
-        v = filter_key_and_substitute_value(v, &vec_range_regex, &search_pattern, &replace_with);
-    } else {
-        v = value_substitute(v, &search_pattern, &replace_with);
-    }
-    // println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //
-    //
-    // Restore default SIGPIPE handling
-    unsafe {
-        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    let (stack, command) = parse_grammar(input);
+
+    match command {
+        JedCommand::Substitute(params) => {
+            let pattern = params.pattern;
+            let replacement = params.replacement;
+            if stack.len() > 0 {
+                v = filter_key_and_substitute_value(v, &stack, &pattern, &replacement);
+            } else {
+                v = value_substitute(v, &pattern, &replacement);
+            }
+        }
+        JedCommand::Other(_) => {
+            println!("Only substitute command is supported for now");
+            std::process::exit(1);
+        }
     }
 
     println!("{}", to_colored_json_auto(&v).unwrap());
@@ -101,7 +89,7 @@ fn main() {
 fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
     let mut stack = Vec::new();
     let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    let mut pattern = String::from("");
+    let mut pattern = Regex::new("").unwrap();
     let mut replacement = String::from("");
     let mut flags = String::from("");
     let mut sed_command = ' ';
@@ -139,7 +127,7 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
             Rule::sed_command => {
                 sed_command = pair.as_str().chars().next().unwrap();
             }
-            Rule::pattern => pattern = pair.as_str().to_string(),
+            Rule::pattern => pattern = Regex::new(pair.as_str()).unwrap(),
             Rule::replacement => replacement = pair.as_str().to_string(),
             Rule::flags => flags = pair.as_str().to_string(),
             _ => {}
@@ -751,7 +739,7 @@ mod tests {
         let (stack, command) = parse_grammar(&input);
         match command {
             JedCommand::Substitute(params) => {
-                assert_eq!(params.pattern, "a");
+                assert_eq!(params.pattern.as_str(), "a");
                 assert_eq!(params.replacement, "XXXX");
                 assert_eq!(params.flags, "g");
             }
@@ -769,7 +757,7 @@ mod tests {
         let (stack, command) = parse_grammar(&input);
         match command {
             JedCommand::Substitute(params) => {
-                assert_eq!(params.pattern, "a");
+                assert_eq!(params.pattern.as_str(), "a");
                 assert_eq!(params.replacement, "b");
                 assert_eq!(params.flags, "g");
             }
