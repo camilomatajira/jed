@@ -88,7 +88,13 @@ fn main() {
 
 fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
     let mut stack = Vec::new();
-    let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+    let parsed = match SedParser::parse(Rule::substitute, &input) {
+        Ok(parsed) => parsed,
+        Err(e) => {
+            println!("Failed to parse command: {}", e);
+            std::process::exit(1);
+        }
+    };
     let mut pattern = Regex::new("").unwrap();
     let mut replacement = String::from("");
     let mut flags = String::from("");
