@@ -33,6 +33,7 @@ enum RangeType {
 }
 enum JedCommand {
     Substitute(SubstituteParams),
+    Print,
     Other(String),
 }
 struct SubstituteParams {
@@ -76,6 +77,9 @@ fn main() {
             } else {
                 v = substitute_values(v, &pattern, &replacement);
             }
+        }
+        JedCommand::Print => {
+            v = print_on_specified_ranges(v, &stack);
         }
         JedCommand::Other(_) => {
             println!("Only substitute command is supported for now");
@@ -149,6 +153,9 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
                 flags,
             }),
         );
+    }
+    if sed_command == 'p' {
+        return (stack, JedCommand::Print);
     }
     return (stack, JedCommand::Other(String::from("temporary")));
 }
@@ -868,6 +875,17 @@ mod tests {
                     key_regex.as_str(),
                     Regex::new("second_key").unwrap().as_str()
                 );
+            }
+            _ => assert!(false),
+        }
+    }
+    #[test]
+    fn test_grammar_5() {
+        let input = String::from("1,3p");
+        let (stack, command) = parse_grammar(&input);
+        match command {
+            JedCommand::Print => {
+                assert!(true)
             }
             _ => assert!(false),
         }
