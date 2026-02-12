@@ -896,7 +896,7 @@ mod tests {
     }
     #[test]
     fn test_grammar_5() {
-        let input = String::from("1,3p");
+        let input = String::from("1,30p");
         let (stack, command) = parse_grammar(&input);
         match command {
             JedCommand::Print => {
@@ -904,7 +904,7 @@ mod tests {
             }
             _ => assert!(false),
         }
-        let input = String::from("/connectors/.1,3p");
+        let input = String::from("/connectors/.1,30p");
         let (stack, command) = parse_grammar(&input);
         match command {
             JedCommand::Print => {
@@ -924,7 +924,7 @@ mod tests {
         match &stack[1] {
             RangeType::Array(array_range) => {
                 assert_eq!(array_range.begin, 1);
-                assert_eq!(array_range.end, 3);
+                assert_eq!(array_range.end, 30);
             }
             _ => assert!(false),
         }
