@@ -1,5 +1,5 @@
 substitute = {
-    range_regex? ~ sed_command ~ PUSH(delim_char) ~ pattern ~ PEEK ~ replacement ~ PEEK ~ flags?
+    range_regex? ~ sed_command ~ "/"? ~ pattern ~ "/"? ~ replacement ~ "/"? ~ flags?
 }
 
 sed_command = { ASCII_ALPHA }
@@ -9,9 +9,8 @@ array_range_regex = { array_range_regex_begin+ ~ "," ~ array_range_regex_end+ }
 array_range_regex_begin = { ASCII_DIGIT }
 array_range_regex_end = { ASCII_DIGIT }
 
-delim_char  = { !ASCII_ALPHANUMERIC ~ ANY }
-pattern     = { (!PEEK ~ ANY)* }
-replacement = { (!PEEK ~ ANY)* }
+pattern     = { (!"/" ~ ANY)* }
+replacement = { (!"/" ~ ANY)* }
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 
 flags = { flag+ }
