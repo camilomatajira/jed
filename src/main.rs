@@ -30,6 +30,7 @@ struct ArrayRange {
 enum RangeType {
     Key(Regex),
     Array(ArrayRange),
+    Value(Regex),
 }
 enum JedCommand {
     Substitute(SubstituteParams),
@@ -41,6 +42,25 @@ struct SubstituteParams {
     replacement: String,
     flags: String,
 }
+
+// Current Status
+// Substitute command.
+// * Works on values jed -c "s/sha/new_sha/g" file.json
+// * Works with key filter jed -c "/commit/ s/a/XXXX/g" file.json
+// * Works with array ranges jed -c "4,10 s/a/XXXX/g" file.json
+//
+// Print command
+// * Works with key filter and array ranges.
+//   jed -c 'p'
+//   jed -c '/key/ p'
+//   jed -c '1,10 p'
+//
+// What is missing?
+// 1. Wildcard for ranges example *
+// 2. Be able to use '$' for the end of the file in ranges..
+// 3. Add filter on the values!!! :/value/
+// 4. Add the 'd' command
+// 5. Refactor!!!
 
 fn main() {
     // Restore default SIGPIPE handling
@@ -353,9 +373,23 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                             return serde_json::Value::Object(new_map);
                         }
                         RangeType::Array(_) => return serde_json::Value::Null,
+                        RangeType::Value(_) => return serde_json::Value::Null,
                     }
                 }
-                Value::String(_) => serde_json::Value::Null,
+                Value::String(v) => {
+                    let mut new_stack = stack.clone();
+                    match new_stack.remove(0) {
+                        RangeType::Key(_) => return serde_json::Value::Null,
+                        RangeType::Array(_) => return serde_json::Value::Null,
+                        RangeType::Value(x) => {
+                            if x.find(&v).is_some() {
+                                return serde_json::Value::String(v);
+                            } else {
+                                return serde_json::Value::Null;
+                            }
+                        }
+                    }
+                }
                 Value::Array(v) => {
                     let mut new_stack = stack.clone();
                     match new_stack.remove(0) {
@@ -369,6 +403,7 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                             }
                             return serde_json::Value::Array(new_vec);
                         }
+                        RangeType::Value(_) => return serde_json::Value::Null,
                     }
                 }
                 Value::Null => serde_json::Value::Null,
@@ -391,9 +426,16 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                                     }
                                 }
                             }
-                            return serde_json::Value::Object(new_map);
+                            if new_map.len() > 0 {
+                                return serde_json::Value::Object(new_map);
+                            } else {
+                                return serde_json::Value::Null;
+                            }
                         }
                         RangeType::Array(_) => {
+                            return serde_json::Value::Null;
+                        }
+                        RangeType::Value(_) => {
                             return serde_json::Value::Null;
                         }
                     }
@@ -413,6 +455,7 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                             }
                             return serde_json::Value::Array(new_vec);
                         }
+                        RangeType::Value(_) => return serde_json::Value::Null,
                     }
                 }
                 Value::Null => serde_json::Value::Null,
@@ -453,6 +496,7 @@ fn substitute_values_on_specified_ranges(
                             return serde_json::Value::Object(new_map);
                         }
                         RangeType::Array(_) => return serde_json::Value::Null,
+                        RangeType::Value(_) => return serde_json::Value::Null,
                     }
                 }
                 Value::String(_) => serde_json::Value::Null,
@@ -475,6 +519,7 @@ fn substitute_values_on_specified_ranges(
                             }
                             return serde_json::Value::Array(new_vec);
                         }
+                        RangeType::Value(_) => return serde_json::Value::Null,
                     }
                 }
                 Value::Null => serde_json::Value::Null,
@@ -506,6 +551,9 @@ fn substitute_values_on_specified_ranges(
                             return serde_json::Value::Object(new_map);
                         }
                         RangeType::Array(_) => {
+                            return serde_json::Value::Null;
+                        }
+                        RangeType::Value(_) => {
                             return serde_json::Value::Null;
                         }
                     }
@@ -1139,5 +1187,30 @@ mod tests {
             Some(_) => assert!(true),
             None => assert!(false),
         };
+    }
+    #[test]
+    fn test_print_6() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 100 }),
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Value(Regex::new("^c").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "camilo");
+        assert_eq!(v["commit"][1], Value::Null);
     }
 }
