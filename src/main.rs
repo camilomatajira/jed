@@ -122,7 +122,7 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
                                         begin = ip.as_str().parse::<usize>().unwrap();
                                     }
                                     Rule::array_range_regex_end => {
-                                        end = ip.as_str().parse::<usize>().unwrap();
+                                        end = ip.as_str().parse::<usize>().expect(ip.as_str());
                                     }
                                     _ => (),
                                 }
@@ -384,7 +384,9 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                             for (k, v) in &current {
                                 if re.find(&k).is_some() {
                                     let new_v = print_on_specified_ranges(v.clone(), &new_stack);
-                                    new_map.insert(k.clone(), new_v);
+                                    if new_v != Value::Null {
+                                        new_map.insert(k.clone(), new_v);
+                                    }
                                 }
                             }
                             return serde_json::Value::Object(new_map);
@@ -784,7 +786,6 @@ mod tests {
     }
     #[test]
     fn test_grammar_1() {
-        // let input = String::from("/c/./d/ s/sha/new_sha/g");
         let input = String::from("s/sha/new_sha/g");
         let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
         let mut _pattern: String;
@@ -928,6 +929,8 @@ mod tests {
             }
             _ => assert!(false),
         }
+        let input = String::from("/connectors/.1,2 p");
+        let (_, _) = parse_grammar(&input);
     }
     #[test]
     fn test_filter_substitute_1() {
@@ -1090,5 +1093,34 @@ mod tests {
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["account_types"][0], "checking");
         assert_eq!(v["connectors"][0]["account_usages"], Value::Null);
+    }
+    #[test]
+    fn test_print_3() {
+        let some_json = r#"
+        {
+        "connectors": [
+        {
+          "siret": null,
+          "slug": null,
+          "stability": {
+            "last_update": "2026-02-07 16:03:02"
+          },
+          "sync_periodicity": null
+        }
+        ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("connectors").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+            RangeType::Key(Regex::new("^s").unwrap()),
+            RangeType::Key(Regex::new("last").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"][0].get("siret") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
     }
 }

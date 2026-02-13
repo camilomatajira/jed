@@ -6,8 +6,8 @@ sed_command = { ASCII_ALPHA }
 range_regex      = { (key_range_regex | array_range_regex) ~ ( "." ~ (key_range_regex | array_range_regex))* }
 key_range_regex = { "/" ~ (!"/"~ANY)+ ~ "/" }
 array_range_regex = { array_range_regex_begin ~ "," ~ array_range_regex_end }
-array_range_regex_begin = { ASCII_DIGIT+ }
-array_range_regex_end = { ASCII_DIGIT+ }
+array_range_regex_begin = @{ ASCII_DIGIT+ }
+array_range_regex_end = @{ ASCII_DIGIT+ }
 
 pattern     = { (!"/" ~ ANY)* }
 replacement = { (!"/" ~ ANY)* }
