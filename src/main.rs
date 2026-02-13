@@ -335,7 +335,9 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
 fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
     let mut response = Value::Null;
     match &stack.len() {
-        0 => (),
+        0 => {
+            return v;
+        }
         1 => {
             response = match v {
                 Value::Object(current) => {
@@ -1121,6 +1123,21 @@ mod tests {
         match v["connectors"][0].get("siret") {
             Some(_) => assert!(false),
             None => assert!(true),
+        };
+    }
+    #[test]
+    fn test_print_4() {
+        let some_json = r#"
+        {
+          "siret": null
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![];
+        v = print_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v.get("siret") {
+            Some(_) => assert!(true),
+            None => assert!(false),
         };
     }
 }
