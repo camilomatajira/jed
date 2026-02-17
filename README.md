@@ -1,40 +1,116 @@
+# jed - sed for JSON
 
-# Questions
+Jed is a command-line tool that brings sed's power to JSON manipulation. Unlike other JSON tools that invent new query languages, jed uses the familiar sed syntax that Unix power users already know.
 
-1. If key substitute generates two identical keys in a same object, what to do?
+If you know sed, you already know jed.
 
-#################################2. 
+## Why jed?
 
-# Pensamientos
-29/12/2025
-Desde un principio pense quela forma adecuada de aboardar el problema era con el design pattern de "composite".
-Al final de cuentas un json es un "composite".
-Sin embargo, abordar el problema asi, de una manera profesional, me parecio algo complicado.
-Al final hice lo que puede con diccionarios y haciendo funcionar como pudiera.
+Tools like `jq` are powerful but require learning a completely new language. The Unix philosophy gave us `sed`, `awk`, and `vim` -- tools whose syntax has proven its worth over decades. Jed transfers that knowledge to JSON.
 
-Siempre he operado bajo el supuesto de que tengo una gasolina fija de motivacion, y que tengo que ver resultados pronto, sino voy a abandonar el proyecto.
-Por eso mismo ni intente hacerlo en rust.
+## Installation
 
-El tema es que tanto con los diccionarios, como con el composite no se como resolver el problema de los filtros.
-Los filtros son los regex que se aplican a las keys y values.
+```bash
+# Build from source (requires Rust)
+# Install to ~/.local/bin
+make install
+```
 
-La unica forma que se me ocurre para resolver el problema es transformando la estructure de datos con "gron".
-Y aun asi, no tengo todo el problema resuelto.
+## Usage
 
-Estuve buscando "useful data structures" y encontre esta: https://en.wikipedia.org/wiki/Trie
-La verdad pareciera que es lo que necesito.
+```
+jed -e '<command>' <file.json>
+```
+### Print matching sections
+
+Use `p` to filter and display only matching portions of JSON:
+
+```bash
+jed -e '/author/ p' file.json
+```
+
+Specifically, 
+```bash
+jed -e 'p' file.json
+```
+Gives you back the entire JSON (identity operator).
+
+### Substitute values
+
+Replace text in JSON values using the familiar `s/pattern/replacement/flags` syntax:
+
+```bash
+jed -e 's/Camilo MATAJIRA/Camilo A. MATAJIRA/g' file.json
+```
+(flags currently not implemented, but will be in the future)
+
+### Filter by key
+
+Apply operations only to values under matching keys:
+
+```bash
+jed -e '/author/ s/José/Jose/g' file.json
+```
+
+### Filter by key chain
+
+Match nested key paths using dot-separated regex patterns:
+
+```bash
+jed -e '/commit/./author/./name/ s/old/new/g' file.json
+```
+
+### Filter by array range
+
+Operate only on specific array elements:
+
+```bash
+jed -e '1,10 s/a/X/g' file.json
+```
+
+### Filter by a mix of everything
+
+Filter on arrays and keys all at once:
+```bash
+jed -e '0,1./author/./.*url/p' test.json
+```
 
 
-This is version v0.2 of jed.
-Jed is a command-line tool that aims to be the spiritual successor of sed but specialized in JSON data manipulation.
-I have written about this project before: https://camilo.matajira.com/?p=635 https://camilo.matajira.com/?p=638
+### Flags
 
-In this realease I added the following features:
-* Key substitution: You can now substitute keys in JSON objects using regex patterns.
-* Value substitution: You can now substitute values in JSON objects using regex patterns.
-* Output with Colors.
+Not ready yet.
 
-The speed of the tool is remarkable for a tool written in Python. It shows the powes of json.loads and the regex modules,
-both written in C.
+## Type handling
 
-Below is the code of the project with the unit test and examples. I still haven't upload it to Github, I am waiting for v1.0.
+Jed is JSON-aware. Substitutions intelligently handle type conversions:
+
+- Replacing a number with a numeric string keeps it as a number
+- Boolean and null values can be substituted
+- Non-numeric replacements on numbers produce strings
+
+## Development
+
+```bash
+# Run tests
+cargo test --bin jed
+
+# Debug build
+cargo build
+```
+
+## TO DO's
+This is just the beginning of the project. There are a lot of features that I would like to introduce.
+For the near future,  I would like to add the following:
+* Filter commands by value (the filter applies on the values, not on the keys). Example:
+```bash
+jed -e ':this_value s/this_value/another_value/g' file.json
+```
+* Add support to read from stdin.
+* Add the command 'S' to subtitute on the keys.
+* Be able to filter not just from the beginning, but allow the key chains to start at the middle.
+* Write a more detailed documentation with examples.
+
+
+## Project history
+
+Jed started as a [Python prototype](https://camilo.matajira.com/?p=638) using the Lark parser (v0.1), evolved to add [key and value substitution](https://camilo.matajira.com/?p=670) (v0.2), and was then [rewritten in Rust](https://camilo.matajira.com/?p=635) for performance, using Pest as the parser.
