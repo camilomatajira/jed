@@ -14,10 +14,8 @@ struct SedParser;
 /// Example: Options and flags
 #[derive(ClapParser)]
 struct Cli {
-    /// Jed command (-c, --command)
     #[clap(short, long, action)]
-    command: String,
-    /// input_files, optional positional
+    expression: String,
     input_file: Option<String>,
 }
 
@@ -51,9 +49,9 @@ struct SubstituteParams {
 //
 // Print command
 // * Works with key filter and array ranges.
-//   jed -c 'p'
-//   jed -c '/key/ p'
-//   jed -c '1,10 p'
+//   jed -e 'p'
+//   jed -e '/key/ p'
+//   jed -e '1,10 p'
 //
 // What is missing?
 // 1. Wildcard for ranges example *
@@ -84,7 +82,7 @@ fn main() {
         }
     }
 
-    let input = &cli.command;
+    let input = &cli.expression;
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
     let (stack, command) = parse_grammar(input);
 
