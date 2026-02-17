@@ -113,4 +113,4 @@ jed -e ':this_value s/this_value/another_value/g' file.json
 
 ## Project history
 
-Jed started as a [Python prototype](https://camilo.matajira.com/?p=638) using the Lark parser (v0.1), evolved to add [key and value substitution](https://camilo.matajira.com/?p=670) (v0.2), and was then [rewritten in Rust](https://camilo.matajira.com/?p=635) for performance, using Pest as the parser.
+Jed started as an [idea/wish](https://camilo.matajira.com/?p=638), the first prototype (v0.1) was written in Python using the Lark Parser[Python prototype](https://camilo.matajira.com/?p=638), then it was added the "substitute" command for values and keys [key and value substitution](https://camilo.matajira.com/?p=670) (v0.2), and now it was rewritten in Rust for performance, using Pest as the parser and Serde to parse JSON.
