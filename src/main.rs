@@ -8,8 +8,8 @@ use serde_json::{Map, Number, Value};
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 struct SedParser;
-// use std::fs;
-// use std::io::Read;
+use std::fs;
+use std::io::Read;
 
 /// Example: Options and flags
 #[derive(ClapParser)]
@@ -67,7 +67,7 @@ fn main() {
     }
 
     let cli = Cli::parse();
-    let file_contents: String;
+    let mut file_contents = String::from("");
 
     match cli.input_file {
         Some(ref input_file) => {
@@ -78,7 +78,7 @@ fn main() {
                 .unwrap();
         }
         None => {
-            std::process::exit(1);
+            std::io::stdin().read_to_string(&mut file_contents).unwrap();
         }
     }
 
