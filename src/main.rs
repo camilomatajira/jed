@@ -179,13 +179,12 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
 }
 
 /// Performs a substitution on the keys of the JSON recursively.
-fn substitute_keys(v: Value, replace_regex: &String, replace_with: &String) -> Value {
-    let re = Regex::new(&replace_regex).unwrap();
+fn substitute_keys(v: Value, replace_regex: &Regex, replace_with: &String) -> Value {
     let v = match v {
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
-                let new_key = re.replace_all(&k, replace_with).into_owned();
+                let new_key = replace_regex.replace_all(&k, replace_with).into_owned();
                 let new_v = substitute_keys(v, replace_regex, replace_with);
                 new_map.insert(new_key, new_v);
             }
@@ -349,9 +348,58 @@ fn filter_key(v: Value, stack: &Vec<String>) -> Value {
     return response;
 }
 
+fn identity(v: Value) -> Value {
+    return v;
+}
 /// This function performs the substitution only in the values that match the filter "stack"
 fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
+    fn operate_on_object(map: Map<String, Value>, re: Regex) -> Value {
+        let mut new_map: Map<String, Value> = Map::new();
+        for (k, v) in map {
+            if re.find(&k).is_some() {
+                // TODO
+                new_map.insert(k.clone(), v.clone());
+            }
+        }
+        return serde_json::Value::Object(new_map);
+    }
+    fn operate_on_array(vec: Vec<Value>, array_range: ArrayRange) -> Value {
+        let mut new_vec: Vec<Value> = Vec::new();
+        for (i, val) in vec.iter().enumerate() {
+            if i >= array_range.begin && i <= array_range.end {
+                new_vec.push(val.clone());
+            }
+        }
+        return serde_json::Value::Array(new_vec);
+    }
+    fn operate_on_string(input: String, re: Regex) -> Value {
+        if re.find(&input).is_some() {
+            return serde_json::Value::String(input);
+        } else {
+            return serde_json::Value::Null;
+        }
+    }
+    //     let mut new_vec: Vec<Value> = Vec::new();
+    apply_on_range(
+        v,
+        stack,
+        false,
+        operate_on_object,
+        operate_on_array,
+        operate_on_string,
+    )
+}
+
+fn apply_on_range(
+    v: Value,
+    stack: &Vec<RangeType>,
+    keep_non_matching: bool,
+    operate_on_object: fn(Map<String, Value>, Regex) -> Value,
+    operate_on_array: fn(Vec<Value>, ArrayRange) -> Value,
+    operate_on_string: fn(String, Regex) -> Value,
+) -> Value {
     let mut response = Value::Null;
+
     match &stack.len() {
         0 => {
             return v;
@@ -362,16 +410,22 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                     let mut new_stack = stack.clone();
                     match new_stack.remove(0) {
                         RangeType::Key(re) => {
-                            let mut new_map: Map<String, Value> = Map::new();
-                            for (k, v) in &current {
-                                if re.find(&k).is_some() {
-                                    new_map.insert(k.clone(), v.clone());
-                                }
-                            }
-                            return serde_json::Value::Object(new_map);
+                            return operate_on_object(current, re);
                         }
-                        RangeType::Array(_) => return serde_json::Value::Null,
-                        RangeType::Value(_) => return serde_json::Value::Null,
+                        RangeType::Array(_) => {
+                            return if keep_non_matching {
+                                serde_json::Value::Object(current)
+                            } else {
+                                serde_json::Value::Null
+                            };
+                        }
+                        RangeType::Value(_) => {
+                            return if keep_non_matching {
+                                serde_json::Value::Object(current)
+                            } else {
+                                serde_json::Value::Null
+                            };
+                        }
                     }
                 }
                 Value::String(v) => {
@@ -379,13 +433,7 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                     match new_stack.remove(0) {
                         RangeType::Key(_) => return serde_json::Value::Null,
                         RangeType::Array(_) => return serde_json::Value::Null,
-                        RangeType::Value(x) => {
-                            if x.find(&v).is_some() {
-                                return serde_json::Value::String(v);
-                            } else {
-                                return serde_json::Value::Null;
-                            }
-                        }
+                        RangeType::Value(re) => return operate_on_string(v, re),
                     }
                 }
                 Value::Array(v) => {
@@ -393,20 +441,26 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                     match new_stack.remove(0) {
                         RangeType::Key(_) => return serde_json::Value::Null,
                         RangeType::Array(array_range) => {
-                            let mut new_vec: Vec<Value> = Vec::new();
-                            for (i, val) in v.iter().enumerate() {
-                                if i >= array_range.begin && i <= array_range.end {
-                                    new_vec.push(val.clone());
-                                }
-                            }
-                            return serde_json::Value::Array(new_vec);
+                            return operate_on_array(v, array_range);
                         }
                         RangeType::Value(_) => return serde_json::Value::Null,
                     }
                 }
                 Value::Null => serde_json::Value::Null,
-                Value::Bool(_) => serde_json::Value::Null,
-                Value::Number(_) => serde_json::Value::Null,
+                Value::Bool(b) => {
+                    return if keep_non_matching {
+                        serde_json::Value::Bool(b)
+                    } else {
+                        serde_json::Value::Null
+                    };
+                }
+                Value::Number(n) => {
+                    return if keep_non_matching {
+                        serde_json::Value::Number(n)
+                    } else {
+                        serde_json::Value::Null
+                    };
+                }
             };
         }
         _ => {
@@ -418,7 +472,14 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
                                 if re.find(&k).is_some() {
-                                    let new_v = print_on_specified_ranges(v.clone(), &new_stack);
+                                    let new_v = apply_on_range(
+                                        v.clone(),
+                                        &new_stack,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
                                     if new_v != Value::Null {
                                         new_map.insert(k.clone(), new_v);
                                     }
@@ -431,36 +492,80 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
                             }
                         }
                         RangeType::Array(_) => {
-                            return serde_json::Value::Null;
+                            return if keep_non_matching {
+                                serde_json::Value::Object(current)
+                            } else {
+                                serde_json::Value::Null
+                            };
                         }
                         RangeType::Value(_) => {
-                            return serde_json::Value::Null;
+                            return if keep_non_matching {
+                                serde_json::Value::Object(current)
+                            } else {
+                                serde_json::Value::Null
+                            };
                         }
                     }
                 }
-                Value::String(_) => serde_json::Value::Null,
+                Value::String(s) => {
+                    return if keep_non_matching {
+                        serde_json::Value::String(s)
+                    } else {
+                        serde_json::Value::Null
+                    };
+                }
                 Value::Array(v) => {
                     let mut new_stack = stack.clone();
                     match new_stack.remove(0) {
-                        RangeType::Key(_) => return serde_json::Value::Null,
+                        RangeType::Key(_) => {
+                            return if keep_non_matching {
+                                serde_json::Value::Array(v)
+                            } else {
+                                serde_json::Value::Null
+                            };
+                        }
                         RangeType::Array(array_range) => {
                             let mut new_vec: Vec<Value> = Vec::new();
                             for (i, val) in v.iter().enumerate() {
                                 if i >= array_range.begin && i <= array_range.end {
-                                    new_vec
-                                        .push(print_on_specified_ranges(val.clone(), &new_stack));
+                                    new_vec.push(apply_on_range(
+                                        val.clone(),
+                                        &new_stack,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    ));
                                 }
                             }
                             return serde_json::Value::Array(new_vec);
                         }
-                        RangeType::Value(_) => return serde_json::Value::Null,
+                        RangeType::Value(_) => {
+                            return if keep_non_matching {
+                                serde_json::Value::Array(v)
+                            } else {
+                                serde_json::Value::Null
+                            };
+                        }
                     }
                 }
                 Value::Null => serde_json::Value::Null,
-                Value::Bool(_) => serde_json::Value::Null,
-                Value::Number(_) => serde_json::Value::Null,
+                Value::Bool(b) => {
+                    return if keep_non_matching {
+                        serde_json::Value::Bool(b)
+                    } else {
+                        serde_json::Value::Null
+                    };
+                }
+                Value::Number(n) => {
+                    return if keep_non_matching {
+                        serde_json::Value::Number(n)
+                    } else {
+                        serde_json::Value::Null
+                    };
+                }
             };
-        } // _ => (),
+        }
     };
     return response;
 }
@@ -574,7 +679,8 @@ mod tests {
         let some_json = r#"
         {"sha": "0eb3da11ed489189963045a3d4eb21ba343736cb", "node_id": "C_kwDOAE3WVdoAKDBlYjNkYTExZWQ0ODkxODk5NjMwNDVhM2Q0ZWIyMWJhMzQzNzM2Y2I"}"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = substitute_keys(v, &String::from("sha"), &String::from("new_sha"));
+        let replace_regex = Regex::new("sha").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("new_sha"));
         assert_eq!(v["new_sha"], "0eb3da11ed489189963045a3d4eb21ba343736cb");
     }
 
@@ -589,7 +695,8 @@ mod tests {
         }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = substitute_keys(v, &String::from("a"), &String::from("o"));
+        let replace_regex = Regex::new("a").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("o"));
         assert_eq!(v["commit"]["outhor"]["nome"], "bigmoonbit");
     }
     #[test]
@@ -604,7 +711,8 @@ mod tests {
         }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = substitute_keys(v, &String::from("nombre"), &String::from("name"));
+        let replace_regex = Regex::new("nombre").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("name"));
         assert_eq!(v["commit"]["author"]["name"], "hola");
     }
     #[test]
@@ -617,7 +725,8 @@ mod tests {
             ]
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        v = substitute_keys(v, &String::from("author"), &String::from("autor"));
+        let replace_regex = Regex::new("author").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("autor"));
         assert_eq!(v["commit"][0]["autor"], "camilo");
         assert_eq!(v["commit"][1]["autor"], "andres");
     }
