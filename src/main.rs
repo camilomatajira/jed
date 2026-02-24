@@ -32,6 +32,7 @@ enum RangeType {
 }
 enum JedCommand {
     Substitute(SubstituteParams),
+    SubstituteKeys(SubstituteParams),
     Print,
     Other(String),
 }
@@ -94,6 +95,15 @@ fn main() {
                 v = substitute_values_on_specified_ranges(v, &stack, &pattern, &replacement);
             } else {
                 v = substitute_values(v, &pattern, &replacement);
+            }
+        }
+        JedCommand::SubstituteKeys(params) => {
+            let pattern = params.pattern;
+            let replacement = params.replacement;
+            if stack.len() > 0 {
+                v = substitute_keys_on_specified_ranges(v, &stack, &pattern, &replacement);
+            } else {
+                v = substitute_keys(v, &pattern, &replacement);
             }
         }
         JedCommand::Print => {
@@ -166,6 +176,16 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
         return (
             stack,
             JedCommand::Substitute(SubstituteParams {
+                pattern,
+                replacement,
+                flags,
+            }),
+        );
+    }
+    if sed_command == 'S' {
+        return (
+            stack,
+            JedCommand::SubstituteKeys(SubstituteParams {
                 pattern,
                 replacement,
                 flags,
