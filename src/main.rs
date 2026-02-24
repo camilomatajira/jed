@@ -610,6 +610,47 @@ fn substitute_values_on_specified_ranges(
     )
 }
 
+fn substitute_keys_on_specified_ranges(
+    v: Value,
+    stack: &Vec<RangeType>,
+    replace_regex: &Regex,
+    replace_with: &String,
+) -> Value {
+    apply_on_range(
+        v,
+        stack,
+        true, // keep non-matching nodes (substitute keeps the whole doc)
+        &|map, re| {
+            let mut new_map: Map<String, Value> = Map::new();
+            for (k, v) in map {
+                if re.find(&k).is_some() {
+                    let new_key = replace_regex.replace_all(&k, replace_with).into_owned();
+                    let new_v = substitute_keys(v, replace_regex, replace_with);
+                    new_map.insert(new_key, new_v);
+                } else {
+                    new_map.insert(k, v);
+                }
+            }
+            Value::Object(new_map)
+        },
+        &|vec, array_range| {
+            let new_vec = vec
+                .into_iter()
+                .enumerate()
+                .map(|(i, val)| {
+                    if i >= array_range.begin && i <= array_range.end {
+                        substitute_keys(val, replace_regex, replace_with)
+                    } else {
+                        val
+                    }
+                })
+                .collect();
+            Value::Array(new_vec)
+        },
+        &|s, _re| Value::String(s), // strings aren't a range target here
+    )
+}
+
 mod tests {
     use super::*;
     #[test]
@@ -667,6 +708,30 @@ mod tests {
         v = substitute_keys(v, &replace_regex, &String::from("autor"));
         assert_eq!(v["commit"][0]["autor"], "camilo");
         assert_eq!(v["commit"][1]["autor"], "andres");
+    }
+    #[test]
+    fn test_substitute_keys_with_filters() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "camilo"
+            },
+            "contributor": {
+              "name": "camilo"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Key(Regex::new("author").unwrap()),
+        ];
+        let replace_regex = Regex::new("name").unwrap();
+        v = substitute_keys_on_specified_ranges(v, &stack, &replace_regex, &String::from("nom"));
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["nom"], "camilo");
+        assert_eq!(v["commit"]["contributor"]["name"], "camilo");
     }
     #[test]
     fn test_substitute_values() {
