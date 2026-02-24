@@ -734,6 +734,27 @@ mod tests {
         assert_eq!(v["commit"]["contributor"]["name"], "camilo");
     }
     #[test]
+    fn test_substitute_keys_with_filters_2() {
+        let some_json = r#"
+        {
+          "commit": [
+            { "author": "camilo" },
+            { "author": "andres" }
+            ]
+
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        let replace_regex = Regex::new("author").unwrap();
+        v = substitute_keys_on_specified_ranges(v, &stack, &replace_regex, &String::from("nom"));
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["nom"], "camilo");
+        assert_eq!(v["commit"][1]["author"], "andres");
+    }
+    #[test]
     fn test_substitute_values() {
         let some_json = r#"
         {
