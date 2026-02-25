@@ -34,6 +34,7 @@ enum JedCommand {
     Substitute(SubstituteParams),
     SubstituteKeys(SubstituteParams),
     Print,
+    Delete,
     Other(String),
 }
 struct SubstituteParams {
@@ -108,6 +109,9 @@ fn main() {
         }
         JedCommand::Print => {
             v = print_on_specified_ranges(v, &stack);
+        }
+        JedCommand::Delete => {
+            v = delete_on_specified_ranges(v, &stack);
         }
         JedCommand::Other(_) => {
             println!("Only substitute command is supported for now");
@@ -194,6 +198,9 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
     }
     if sed_command == 'p' {
         return (stack, JedCommand::Print);
+    }
+    if sed_command == 'd' {
+        return (stack, JedCommand::Delete);
     }
     return (stack, JedCommand::Other(String::from("temporary")));
 }
@@ -409,6 +416,46 @@ fn print_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
         &operate_on_string,
     )
 }
+fn delete_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
+    if stack.len() == 0 {
+        return Value::Null;
+    }
+    fn operate_on_object(map: Map<String, Value>, re: Regex) -> Value {
+        let mut new_map: Map<String, Value> = Map::new();
+        for (k, v) in map {
+            if re.find(&k).is_none() {
+                // if re.find(&k).is_none() {
+                // TODO
+                new_map.insert(k.clone(), v.clone());
+            }
+        }
+        return serde_json::Value::Object(new_map);
+    }
+    fn operate_on_array(vec: Vec<Value>, array_range: ArrayRange) -> Value {
+        let mut new_vec: Vec<Value> = Vec::new();
+        for (i, val) in vec.iter().enumerate() {
+            if i < array_range.begin || i > array_range.end {
+                new_vec.push(val.clone());
+            }
+        }
+        return serde_json::Value::Array(new_vec);
+    }
+    fn operate_on_string(input: String, re: Regex) -> Value {
+        if re.find(&input).is_some() {
+            return serde_json::Value::Null;
+        } else {
+            return serde_json::Value::String(input);
+        }
+    }
+    apply_on_range(
+        v,
+        stack,
+        true,
+        &operate_on_object,
+        &operate_on_array,
+        &operate_on_string,
+    )
+}
 
 fn apply_on_range(
     v: Value,
@@ -503,6 +550,8 @@ fn apply_on_range(
                                     if new_v != Value::Null {
                                         new_map.insert(k.clone(), new_v);
                                     }
+                                } else if keep_non_matching {
+                                    new_map.insert(k.clone(), v.clone());
                                 }
                             }
                             if new_map.len() > 0 {
@@ -1363,5 +1412,83 @@ mod tests {
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["commit"][0]["name"], "camilo");
         assert_eq!(v["commit"][1], Value::Null);
+    }
+    #[test]
+    fn test_delete_1() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        v = delete_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "andres");
+
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![RangeType::Key(Regex::new("doesnt-exists").unwrap())];
+        v = delete_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "camilo");
+        assert_eq!(v["commit"][1]["name"], "andres");
+    }
+    #[test]
+    fn test_delete_3() {
+        let some_json = r#"
+        {
+          "commit": {
+            "url": "https://api.github.com/repos/jqlang/jq/git/commits/88b9c4920e643190eebddcf41e373856b5b9292e",
+            "verification": {
+              "payload": "tree ",
+              "reason": "valid",
+              "signature": "000",
+              "verified": true,
+              "verified_at": "2025-12-12T09:54:40Z"
+            }
+          },
+          "node_id": "C_kwDOAE3WVdoAKDg4YjljNDkyMGU2NDMxOTBlZWJkZGNmNDFlMzczODU2YjViOTI5MmU",
+          "sha": "88b9c4920e643190eebddcf41e373856b5b9292e"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Key(Regex::new("verification").unwrap()),
+        ];
+        v = delete_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["commit"].get("verification") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        match v["commit"].get("url") {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        };
+        assert!(v.get("node_id").is_some());
+    }
+    #[test]
+    fn test_delete_4() {
+        let some_json = r#"
+        {
+          "siret": null
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![];
+        v = delete_on_specified_ranges(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v.get("siret") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
     }
 }
