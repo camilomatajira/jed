@@ -51,7 +51,7 @@ Replace text in JSON values using the familiar `s/pattern/replacement/flags` syn
 ```bash
 jed -e 's/Camilo MATAJIRA/Camilo A. MATAJIRA/' file.json
 ```
-(flags currently not implemented, but will be in the future)
+(flags currently not implemented, but may be in the future)
 
 ### Filter by key
 
@@ -135,7 +135,11 @@ cat mat6.json | jed -e 'p'
 Let's suppose we are only interested in verses 9 to 13 (range 8 to 12).
 And we are interested interested only on the "text" and the "verse" keys (hence the regular expression "text|verse").
 ```bash
+# Filtering from the root 'data'
 cat mat6.json | jed -e '/data/.8,12./text|verse/ p'
+# or
+# Filters can starts at any depth
+cat mat6.json | jed -e '8,12./text|verse/ p'
 ```
 ```json
 {
@@ -202,9 +206,9 @@ For the near future, I would like to add the following:
 ```bash
 jed -e ':this_value s/this_value/another_value/g' file.json
 ```
-* Allow wildcards in the lists.
-* Be able to filter not just from the beginning, but allow the key chains to start at the middle.
 * Allow 'in-place' editing (like sed -i).
+* Support reading from multiple files.
+* Remove the need for '-e' to pass an expression.
 
 
 ## Project history
