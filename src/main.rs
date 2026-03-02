@@ -1596,7 +1596,6 @@ mod tests {
             Some(_) => assert!(false),
             None => assert!(true),
         };
-        assert!(false);
     }
     // #[test]
     // fn test_print_3() {
