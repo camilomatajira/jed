@@ -567,12 +567,35 @@ fn apply_on_range(
                         RangeType::Key(re) => {
                             return operate_on_object(current, re, stack, stack_anchored);
                         }
-                        RangeType::Array(array) => {
-                            return if keep_non_matching {
-                                serde_json::Value::Object(current)
+                        RangeType::Array(_) => {
+                            if stack_anchored {
+                                return if keep_non_matching {
+                                    serde_json::Value::Object(current)
+                                } else {
+                                    serde_json::Value::Null
+                                };
                             } else {
-                                serde_json::Value::Null
-                            };
+                                let mut new_map: Map<String, Value> = Map::new();
+                                for (k, v) in &current {
+                                    let new_v = apply_on_range(
+                                        v.clone(),
+                                        stack,
+                                        false,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    if new_v != Value::Null {
+                                        new_map.insert(k.clone(), new_v);
+                                    }
+                                }
+                                if new_map.len() > 0 {
+                                    return serde_json::Value::Object(new_map);
+                                } else {
+                                    return serde_json::Value::Null;
+                                }
+                            }
                         }
                         RangeType::Value(_) => {
                             return if keep_non_matching {
@@ -1672,6 +1695,21 @@ mod tests {
         v = print2_on_specified_ranges(v, &mut stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
+    }
+    #[test]
+    fn test_print_6_flexible() {
+        let some_json = r#"
+        {
+          "connectors": [
+          "1", "2", "3"
+          ]
+
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let mut stack = vec![RangeType::Array(ArrayRange { begin: 0, end: 0 })];
+        v = print2_on_specified_ranges(v, &mut stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["connectors"][0], "1");
     }
     // #[test]
     // fn test_print_3() {
