@@ -86,7 +86,7 @@ fn main() {
 
     let input = &cli.expression;
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
-    let (stack, command) = parse_grammar(input);
+    let (mut stack, command) = parse_grammar(input);
 
     match command {
         JedCommand::Substitute(params) => {
@@ -108,7 +108,7 @@ fn main() {
             }
         }
         JedCommand::Print => {
-            v = print2_on_specified_ranges(v, &stack);
+            v = print2_on_specified_ranges(v, &mut stack);
         }
         JedCommand::Delete => {
             // v = delete_on_specified_ranges(v, &stack);
@@ -416,45 +416,60 @@ fn identity(v: Value) -> Value {
 //         &operate_on_string,
 //     )
 // }
-fn print2_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
-    fn operate_on_object(map: Map<String, Value>, re: Regex, stack: &Vec<RangeType>) -> Value {
+fn print2_on_specified_ranges(v: Value, stack: &mut Vec<RangeType>) -> Value {
+    fn operate_on_object(
+        map: Map<String, Value>,
+        re: Regex,
+        stack: &mut Vec<RangeType>,
+        stack_anchored: bool,
+    ) -> Value {
         // let operate_on_object = |map: Map<String, Value>, re: Regex, stack: &Vec<RangeType>| -> Value {
         let mut new_map: Map<String, Value> = Map::new();
-        for (k, v) in map {
-            if re.find(&k).is_some() {
-                // TODO
-                new_map.insert(k.clone(), v.clone());
-            } else {
-                let new_v = apply_on_range(
-                    v.clone(),
-                    stack,
-                    false,
-                    &operate_on_object,
-                    &operate_on_array,
-                    &operate_on_string,
-                );
-                match &new_v {
-                    Value::Array(array) => {
-                        if array.len() > 0 {
-                            new_map.insert(k.clone(), new_v.clone());
-                        }
-                    }
-                    Value::Object(object) => {
-                        if object.len() > 0 {
-                            new_map.insert(k.clone(), new_v.clone());
-                        }
-                    } // _ => new_map.insert(k.clone(), new_v),
-                    Value::Null => {}
-                    _ => {
-                        new_map.insert(k.clone(), new_v.clone());
-                    }
+        // It was already popped before
+        if stack_anchored {
+            stack.pop();
+            for (k, v) in map {
+                if re.find(&k).is_some() {
+                    new_map.insert(k.clone(), v.clone());
                 }
-                // if new_v != Value:: {
-                //     new_map.insert(k.clone(), new_v);
-                // }
-                // if new_v != Value::Null {
-                //     new_map.insert(k.clone(), new_v);
-                // }
+            }
+        } else {
+            for (k, v) in map {
+                if re.find(&k).is_some() {
+                    new_map.insert(k.clone(), v.clone());
+                } else {
+                    let new_v = apply_on_range(
+                        v.clone(),
+                        stack,
+                        false,
+                        false,
+                        &operate_on_object,
+                        &operate_on_array,
+                        &operate_on_string,
+                    );
+                    match &new_v {
+                        Value::Array(array) => {
+                            if array.len() > 0 {
+                                new_map.insert(k.clone(), new_v.clone());
+                            }
+                        }
+                        Value::Object(object) => {
+                            if object.len() > 0 {
+                                new_map.insert(k.clone(), new_v.clone());
+                            }
+                        } // _ => new_map.insert(k.clone(), new_v),
+                        Value::Null => {}
+                        _ => {
+                            new_map.insert(k.clone(), new_v.clone());
+                        }
+                    }
+                    // if new_v != Value:: {
+                    //     new_map.insert(k.clone(), new_v);
+                    // }
+                    // if new_v != Value::Null {
+                    //     new_map.insert(k.clone(), new_v);
+                    // }
+                }
             }
         }
         if new_map.len() > 0 {
@@ -481,6 +496,7 @@ fn print2_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
     apply_on_range(
         v,
         stack,
+        false,
         false,
         &operate_on_object,
         &operate_on_array,
@@ -530,9 +546,10 @@ fn print2_on_specified_ranges(v: Value, stack: &Vec<RangeType>) -> Value {
 
 fn apply_on_range(
     v: Value,
-    stack: &Vec<RangeType>,
+    stack: &mut Vec<RangeType>,
+    stack_anchored: bool,
     keep_non_matching: bool,
-    operate_on_object: &dyn Fn(Map<String, Value>, Regex, &Vec<RangeType>) -> Value,
+    operate_on_object: &dyn Fn(Map<String, Value>, Regex, &mut Vec<RangeType>, bool) -> Value,
     operate_on_array: &dyn Fn(Vec<Value>, ArrayRange) -> Value,
     operate_on_string: &dyn Fn(String, Regex) -> Value,
 ) -> Value {
@@ -548,7 +565,7 @@ fn apply_on_range(
                     let mut new_stack = stack.clone();
                     match new_stack.remove(0) {
                         RangeType::Key(re) => {
-                            return operate_on_object(current, re, stack);
+                            return operate_on_object(current, re, stack, stack_anchored);
                         }
                         RangeType::Array(array) => {
                             return if keep_non_matching {
@@ -583,6 +600,7 @@ fn apply_on_range(
                                 let new_v = apply_on_range(
                                     i.clone(),
                                     stack,
+                                    stack_anchored,
                                     keep_non_matching,
                                     operate_on_object,
                                     operate_on_array,
@@ -641,20 +659,54 @@ fn apply_on_range(
                         RangeType::Key(re) => {
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
-                                if re.find(&k).is_some() {
-                                    let new_v = apply_on_range(
-                                        v.clone(),
-                                        &new_stack,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    if new_v != Value::Null {
-                                        new_map.insert(k.clone(), new_v);
+                                if stack_anchored {
+                                    if re.find(&k).is_some() {
+                                        let new_v = apply_on_range(
+                                            v.clone(),
+                                            &mut new_stack,
+                                            true,
+                                            keep_non_matching,
+                                            operate_on_object,
+                                            operate_on_array,
+                                            operate_on_string,
+                                        );
+                                        if new_v != Value::Null {
+                                            new_map.insert(k.clone(), new_v);
+                                        }
+                                    } else if keep_non_matching {
+                                        new_map.insert(k.clone(), v.clone());
                                     }
-                                } else if keep_non_matching {
-                                    new_map.insert(k.clone(), v.clone());
+                                } else {
+                                    if re.find(&k).is_some() {
+                                        let new_v = apply_on_range(
+                                            v.clone(),
+                                            &mut new_stack,
+                                            true,
+                                            keep_non_matching,
+                                            operate_on_object,
+                                            operate_on_array,
+                                            operate_on_string,
+                                        );
+                                        if new_v != Value::Null {
+                                            new_map.insert(k.clone(), new_v);
+                                        }
+                                    } else {
+                                        let new_v = apply_on_range(
+                                            v.clone(),
+                                            stack,
+                                            false,
+                                            keep_non_matching,
+                                            operate_on_object,
+                                            operate_on_array,
+                                            operate_on_string,
+                                        );
+                                        if new_v != Value::Null {
+                                            new_map.insert(k.clone(), new_v);
+                                        }
+                                    }
+                                    if keep_non_matching {
+                                        new_map.insert(k.clone(), v.clone());
+                                    }
                                 }
                             }
                             if new_map.len() > 0 {
@@ -702,7 +754,8 @@ fn apply_on_range(
                                 if i >= array_range.begin && i <= array_range.end {
                                     new_vec.push(apply_on_range(
                                         val.clone(),
-                                        &new_stack,
+                                        &mut new_stack,
+                                        true,
                                         keep_non_matching,
                                         operate_on_object,
                                         operate_on_array,
@@ -1460,8 +1513,8 @@ mod tests {
              }
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
-        v = print2_on_specified_ranges(v, &stack);
+        let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
+        v = print2_on_specified_ranges(v, &mut stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"]["account_types"][0], "checking");
         assert_eq!(v["connectors"]["account_usages"], Value::Null);
@@ -1484,8 +1537,8 @@ mod tests {
              ]
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
-        v = print2_on_specified_ranges(v, &stack);
+        let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
+        v = print2_on_specified_ranges(v, &mut stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["account_types"][0], "checking");
         match v["connectors"][0].get("account_usages") {
@@ -1507,12 +1560,43 @@ mod tests {
              ]
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![RangeType::Key(
+        let mut stack = vec![RangeType::Key(
             Regex::new("something that does not exists").unwrap(),
         )];
-        v = print2_on_specified_ranges(v, &stack);
+        v = print2_on_specified_ranges(v, &mut stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v, Value::Null);
+    }
+    #[test]
+    fn test_print_4_flexible() {
+        let some_json = r#"
+        {
+          "key1":{
+          "key11": {
+          "key111": "a",
+          "key112": "b"
+          },
+          "key112": "b"
+          },
+
+          "key2":{
+          "key11": "c",
+          "key12": "d"
+          }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let mut stack = vec![
+            RangeType::Key(Regex::new("key1").unwrap()),
+            RangeType::Key(Regex::new("key112").unwrap()),
+        ];
+        v = print2_on_specified_ranges(v, &mut stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["key1"]["key112"], "b");
+        match v["key1"].get("key11") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        assert!(false);
     }
     // #[test]
     // fn test_print_3() {
