@@ -716,11 +716,34 @@ fn apply_on_range(
                             }
                         }
                         RangeType::Array(_) => {
-                            return if keep_non_matching {
-                                serde_json::Value::Object(current)
+                            if stack_anchored {
+                                return if keep_non_matching {
+                                    serde_json::Value::Object(current)
+                                } else {
+                                    serde_json::Value::Null
+                                };
                             } else {
-                                serde_json::Value::Null
-                            };
+                                let mut new_map: Map<String, Value> = Map::new();
+                                for (k, v) in &current {
+                                    let new_v = apply_on_range(
+                                        v.clone(),
+                                        stack,
+                                        false,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    if new_v != Value::Null {
+                                        new_map.insert(k.clone(), new_v);
+                                    }
+                                }
+                                if new_map.len() > 0 {
+                                    return serde_json::Value::Object(new_map);
+                                } else {
+                                    return serde_json::Value::Null;
+                                }
+                            }
                         }
                         RangeType::Value(_) => {
                             return if keep_non_matching {
@@ -1636,6 +1659,15 @@ mod tests {
         let mut stack = vec![
             RangeType::Key(Regex::new("stability").unwrap()),
             RangeType::Key(Regex::new("last_update").unwrap()),
+        ];
+        v = print2_on_specified_ranges(v, &mut stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
+
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let mut stack = vec![
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+            RangeType::Key(Regex::new("stability").unwrap()),
         ];
         v = print2_on_specified_ranges(v, &mut stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
