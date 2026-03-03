@@ -1030,148 +1030,148 @@ mod tests {
         assert_eq!(v["commit"]["author"]["nom"], "camilo");
         assert_eq!(v["commit"]["contributor"]["name"], "camilo");
     }
-    // #[test]
-    // fn test_substitute_keys_with_filters_2() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         { "author": "camilo" },
-    //         { "author": "andres" }
-    //         ]
+    #[test]
+    fn test_substitute_keys_with_filters_2() {
+        let some_json = r#"
+        {
+          "commit": [
+            { "author": "camilo" },
+            { "author": "andres" }
+            ]
 
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new(".*").unwrap()),
-    //         RangeType::Array(ArrayRange { begin: 0, end: 0 }),
-    //     ];
-    //     let replace_regex = Regex::new("author").unwrap();
-    //     v = substitute_keys_on_specified_ranges(v, &stack, &replace_regex, &String::from("nom"));
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["nom"], "camilo");
-    //     assert_eq!(v["commit"][1]["author"], "andres");
-    // }
-    // #[test]
-    // fn test_substitute_values() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new("oo").unwrap(), &String::from("AAA"));
-    //     assert_eq!(v["commit"]["author"]["name"], "bigmAAAnbit");
-    // }
-    // #[test]
-    // fn test_substitute_values_2() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new("o").unwrap(), &String::from("A"));
-    //     assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
-    // }
-    // #[test]
-    // fn test_substitute_values_recursivity_inside_lists() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         { "author": "camilo" },
-    //         { "author": "andres" }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new("andres").unwrap(), &String::from("mata"));
-    //     assert_eq!(v["commit"][1]["author"], "mata");
-    // }
-    // #[test]
-    // fn test_substitute_values_recursivity_with_list_in_the_root() {
-    //     let some_json = r#"
-    //     [
-    //         { "author": "camilo" },
-    //         { "author": "andres" }
-    //     ]
-    //     "#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new("andres").unwrap(), &String::from("mata"));
-    //     assert_eq!(v[1]["author"], "mata");
-    // }
-    // #[test]
-    // fn test_substitute_values_numbers_can_be_replaced() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": 5
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new("5").unwrap(), &String::from("6"));
-    //     assert_eq!(v["commit"]["author"]["name"], 6);
-    // }
-    // #[test]
-    // fn test_substitute_values_booleans_can_be_modified() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": true
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new("true").unwrap(), &String::from("false"));
-    //     assert_eq!(v["commit"]["author"]["name"], false);
-    // }
-    // #[test]
-    // fn test_substitute_values_random_bug() {
-    //     let some_json = r#"
-    //     {
-    //     "sha": "03cb1e19da91f0df728914d4c8717f7490df04e4"
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
-    //     assert_eq!(v["sha"], "hola");
-    // }
-    // #[test]
-    // fn test_substitute_values_numbers_can_be_replaced_2() {
-    //     let some_json = r#"
-    //     {
-    //     "sha": 0
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
-    //     assert_eq!(v["sha"], "hola");
-    // }
-    // #[test]
-    // fn test_substitute_values_nulls_can_be_replaced() {
-    //     let some_json = r#"
-    //     {
-    //     "sha": null
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
-    //     assert_eq!(v["sha"], "hola");
-    // }
-    // #[test]
-    // fn test_substitute_values_new_lines_can_be_replaced() {
-    //     let some_json = r#"
-    //     {
-    //     "sha": "a\\nb"
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
-    //     assert_eq!(v["sha"], "hola");
-    // }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        let replace_regex = Regex::new("author").unwrap();
+        v = substitute_keys_on_specified_ranges(v, stack, &replace_regex, &String::from("nom"));
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["nom"], "camilo");
+        assert_eq!(v["commit"][1]["author"], "andres");
+    }
+    #[test]
+    fn test_substitute_values() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new("oo").unwrap(), &String::from("AAA"));
+        assert_eq!(v["commit"]["author"]["name"], "bigmAAAnbit");
+    }
+    #[test]
+    fn test_substitute_values_2() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new("o").unwrap(), &String::from("A"));
+        assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
+    }
+    #[test]
+    fn test_substitute_values_recursivity_inside_lists() {
+        let some_json = r#"
+        {
+          "commit": [
+            { "author": "camilo" },
+            { "author": "andres" }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new("andres").unwrap(), &String::from("mata"));
+        assert_eq!(v["commit"][1]["author"], "mata");
+    }
+    #[test]
+    fn test_substitute_values_recursivity_with_list_in_the_root() {
+        let some_json = r#"
+        [
+            { "author": "camilo" },
+            { "author": "andres" }
+        ]
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new("andres").unwrap(), &String::from("mata"));
+        assert_eq!(v[1]["author"], "mata");
+    }
+    #[test]
+    fn test_substitute_values_numbers_can_be_replaced() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": 5
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new("5").unwrap(), &String::from("6"));
+        assert_eq!(v["commit"]["author"]["name"], 6);
+    }
+    #[test]
+    fn test_substitute_values_booleans_can_be_modified() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": true
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new("true").unwrap(), &String::from("false"));
+        assert_eq!(v["commit"]["author"]["name"], false);
+    }
+    #[test]
+    fn test_substitute_values_random_bug() {
+        let some_json = r#"
+        {
+        "sha": "03cb1e19da91f0df728914d4c8717f7490df04e4"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
+    #[test]
+    fn test_substitute_values_numbers_can_be_replaced_2() {
+        let some_json = r#"
+        {
+        "sha": 0
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
+    #[test]
+    fn test_substitute_values_nulls_can_be_replaced() {
+        let some_json = r#"
+        {
+        "sha": null
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
+    #[test]
+    fn test_substitute_values_new_lines_can_be_replaced() {
+        let some_json = r#"
+        {
+        "sha": "a\\nb"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
+        assert_eq!(v["sha"], "hola");
+    }
     // #[test]
     // fn test_filter_0() {
     //     let some_json = r#"
