@@ -623,38 +623,42 @@ fn apply_on_range(
                     let mut new_stack = stack.clone();
                     match new_stack.remove(0) {
                         RangeType::Key(_) => {
-                            let mut result: Vec<Value> = Vec::new();
-                            for i in current {
-                                let new_v = apply_on_range(
-                                    i.clone(),
-                                    stack.clone(),
-                                    stack_anchored,
-                                    keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
-                                );
-                                match &new_v {
-                                    Value::Array(array) => {
-                                        if array.len() > 0 {
+                            if stack_anchored {
+                                return serde_json::Value::Null;
+                            } else {
+                                let mut result: Vec<Value> = Vec::new();
+                                for i in current {
+                                    let new_v = apply_on_range(
+                                        i.clone(),
+                                        stack.clone(),
+                                        stack_anchored,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    match &new_v {
+                                        Value::Array(array) => {
+                                            if array.len() > 0 {
+                                                result.push(new_v);
+                                            }
+                                        }
+                                        Value::Object(object) => {
+                                            if object.len() > 0 {
+                                                result.push(new_v);
+                                            }
+                                        }
+                                        Value::Null => {}
+                                        _ => {
                                             result.push(new_v);
                                         }
-                                    }
-                                    Value::Object(object) => {
-                                        if object.len() > 0 {
-                                            result.push(new_v);
-                                        }
-                                    }
-                                    Value::Null => {}
-                                    _ => {
-                                        result.push(new_v);
                                     }
                                 }
+                                if result.len() > 0 {
+                                    return serde_json::Value::Array(result);
+                                }
+                                return serde_json::Value::Null;
                             }
-                            if result.len() > 0 {
-                                return serde_json::Value::Array(result);
-                            }
-                            return serde_json::Value::Null;
                         }
                         RangeType::Array(array_range) => {
                             return operate_on_array(current, array_range);
@@ -1183,342 +1187,342 @@ mod tests {
         v = filter_key(v, &stack);
         assert_eq!(v["name"], Value::Null);
     }
-    // #[test]
-    // fn test_filter_1() {
-    //     let some_json = r#"
-    //     {
-    //         "name": "camilo"
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![String::from("name")];
-    //     v = filter_key(v, &stack);
-    //     assert_eq!(v["name"], "camilo");
-    // }
-    // #[test]
-    // fn test_filter_2() {
-    //     let some_json = r#"
-    //     {
-    //         "name": "camilo",
-    //         "nombre": "andres"
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![String::from("name")];
-    //     v = filter_key(v, &stack);
-    //     assert_eq!(v["nombre"], Value::Null);
-    // }
-    // #[test]
-    // fn test_filter_3() {
-    //     let some_json = r#"
-    //     {
-    //         "author": {
-    //           "name": "bigmoonbit",
-    //           "nombre": "hola"
-    //         }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![String::from("author"), String::from("name")];
-    //     v = filter_key(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["author"]["name"], "bigmoonbit");
-    //     assert_eq!(v["author"]["nombre"], Value::Null);
-    // }
-    // #[test]
-    // fn test_filter_4() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit",
-    //           "nombre": "hola"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         String::from("commit"),
-    //         String::from("author"),
-    //         String::from("name"),
-    //     ];
-    //     v = filter_key(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
-    //     assert_eq!(v["commit"]["author"]["nombre"], Value::Null);
-    // }
-    // #[test]
-    // fn test_filter_5() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit",
-    //           "nombre": "hola"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![String::from("commit")];
-    //     v = filter_key(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
-    //     assert_eq!(v["commit"]["author"]["nombre"], "hola");
-    // }
-    // #[test]
-    // fn test_grammar_1() {
-    //     let input = String::from("s/sha/new_sha/g");
-    //     let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    //     let mut _pattern: String;
-    //     let mut _replacement: String;
-    //     let mut _flags: String;
-    //     for pair in parsed.into_iter().next().unwrap().into_inner() {
-    //         match pair.as_rule() {
-    //             Rule::pattern => _pattern = pair.as_str().to_string(),
-    //             Rule::replacement => _replacement = pair.as_str().to_string(),
-    //             Rule::flags => _flags = pair.as_str().to_string(),
-    //             _ => {}
-    //         }
-    //     }
-    // }
-    // #[test]
-    // fn test_grammar_2() {
-    //     let input = String::from("/c/s/sha/new_sha/g");
-    //     // let input = String::from("s/sha/new_sha/g");
-    //     let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    //     let input = String::from("/c/ s/sha/new_sha/g");
-    //     // let input = String::from("s/sha/new_sha/g");
-    //     let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    //     let input = String::from("/c/./d/ s/sha/new_sha/g");
-    //     // let input = String::from("s/sha/new_sha/g");
-    //     let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    //     let input = String::from("/c/./d/./e/ s/sha/new_sha/g");
-    //     // let input = String::from("s/sha/new_sha/g");
-    //     let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    //     for pair in parsed.into_iter().next().unwrap().into_inner() {
-    //         match pair.as_rule() {
-    //             Rule::pattern => assert_eq!(pair.as_str(), "sha"),
-    //             Rule::replacement => assert_eq!(pair.as_str(), "new_sha"),
-    //             Rule::flags => assert_eq!(pair.as_str(), "g"),
-    //             Rule::range_regex => assert_eq!(pair.as_str(), "/c/./d/./e/"),
-    //             _ => {}
-    //         }
-    //     }
-    // }
-    // #[test]
-    // fn test_grammar_3() {
-    //     let input = String::from("/commit/s/a/XXXX/g");
-    //     let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
-    //     for pair in parsed.into_iter().next().unwrap().into_inner() {
-    //         match pair.as_rule() {
-    //             Rule::pattern => assert_eq!(pair.as_str(), "a"),
-    //             Rule::replacement => assert_eq!(pair.as_str(), "XXXX"),
-    //             Rule::flags => assert_eq!(pair.as_str(), "g"),
-    //             Rule::range_regex => assert_eq!(pair.as_str(), "/commit/"),
-    //             _ => {}
-    //         }
-    //     }
-    // }
-    // #[test]
-    // fn test_grammar_4() {
-    //     let input = String::from("1,3s/a/XXXX/g");
-    //     let (stack, command) = parse_grammar(&input);
-    //     match command {
-    //         JedCommand::Substitute(params) => {
-    //             assert_eq!(params.pattern.as_str(), "a");
-    //             assert_eq!(params.replacement, "XXXX");
-    //             assert_eq!(params.flags, "g");
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     assert_eq!(stack.len(), 1);
-    //     match stack.first().unwrap() {
-    //         RangeType::Array(array_range) => {
-    //             assert_eq!(array_range.begin, 1);
-    //             assert_eq!(array_range.end, 3);
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     let input = String::from("/first_key/.1,3./second_key/s/a/b/g");
-    //     let (stack, command) = parse_grammar(&input);
-    //     match command {
-    //         JedCommand::Substitute(params) => {
-    //             assert_eq!(params.pattern.as_str(), "a");
-    //             assert_eq!(params.replacement, "b");
-    //             assert_eq!(params.flags, "g");
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     assert_eq!(stack.len(), 3);
-    //     match &stack[0] {
-    //         RangeType::Key(key_regex) => {
-    //             assert_eq!(
-    //                 key_regex.as_str(),
-    //                 Regex::new("first_key").unwrap().as_str()
-    //             );
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     match &stack[1] {
-    //         RangeType::Array(array_range) => {
-    //             assert_eq!(array_range.begin, 1);
-    //             assert_eq!(array_range.end, 3);
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     match &stack[2] {
-    //         RangeType::Key(key_regex) => {
-    //             assert_eq!(
-    //                 key_regex.as_str(),
-    //                 Regex::new("second_key").unwrap().as_str()
-    //             );
-    //         }
-    //         _ => assert!(false),
-    //     }
-    // }
-    // #[test]
-    // fn test_grammar_5() {
-    //     let input = String::from("1,30p");
-    //     let (stack, command) = parse_grammar(&input);
-    //     match command {
-    //         JedCommand::Print => {
-    //             assert!(true)
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     let input = String::from("/connectors/.1,30p");
-    //     let (stack, command) = parse_grammar(&input);
-    //     match command {
-    //         JedCommand::Print => {
-    //             assert!(true)
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     match &stack[0] {
-    //         RangeType::Key(key_regex) => {
-    //             assert_eq!(
-    //                 key_regex.as_str(),
-    //                 Regex::new("connectors").unwrap().as_str()
-    //             );
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     match &stack[1] {
-    //         RangeType::Array(array_range) => {
-    //             assert_eq!(array_range.begin, 1);
-    //             assert_eq!(array_range.end, 30);
-    //         }
-    //         _ => assert!(false),
-    //     }
-    //     let input = String::from("/connectors/.1,2 p");
-    //     let (_, _) = parse_grammar(&input);
-    // }
-    // #[test]
-    // fn test_filter_substitute_1() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit",
-    //           "nombre": "hoola"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new("commit").unwrap()),
-    //         RangeType::Key(Regex::new("author").unwrap()),
-    //         RangeType::Key(Regex::new("name").unwrap()),
-    //     ];
-    //     let old_regex = Regex::new("oo").unwrap();
-    //     let new_regex = String::from("AA");
-    //     v = substitute_values_on_specified_ranges(v, &stack, &old_regex, &new_regex);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
-    //     assert_eq!(v["commit"]["author"]["nombre"], "hoola");
-    // }
-    // #[test]
-    // fn test_filter_substitute_with_arrays() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         {
-    //           "name": "camilo"
-    //         },
-    //         {
-    //           "name": "andres"
-    //         }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![RangeType::Key(Regex::new("commit").unwrap())];
-    //     let old_regex = Regex::new("a").unwrap();
-    //     let new_regex = String::from("x");
-    //     v = substitute_values_on_specified_ranges(v, &stack, &old_regex, &new_regex);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["name"], "cxmilo");
-    //     assert_eq!(v["commit"][1]["name"], "xndres");
-    // }
-    // #[test]
-    // fn test_filter_substitute_with_arrays_and_ranges() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         {
-    //           "name": "camilo"
-    //         },
-    //         {
-    //           "name": "andres"
-    //         }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new("commit").unwrap()),
-    //         RangeType::Array(ArrayRange { begin: 0, end: 0 }),
-    //     ];
-    //     let search_regex = Regex::new("a").unwrap();
-    //     let replace_with = String::from("x");
-    //     v = substitute_values_on_specified_ranges(v, &stack, &search_regex, &replace_with);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["name"], "cxmilo");
-    //     assert_eq!(v["commit"][1]["name"], "andres");
-    // }
-    // #[test]
-    // fn test_filter_substitute_with_arrays_and_ranges_2() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         {
-    //           "name": "camilo"
-    //         },
-    //         {
-    //           "name": "andres"
-    //         }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new("commit").unwrap()),
-    //         RangeType::Key(Regex::new("name").unwrap()),
-    //     ];
-    //     let search_regex = Regex::new("a").unwrap();
-    //     let replace_with = String::from("x");
-    //     v = substitute_values_on_specified_ranges(v, &stack, &search_regex, &replace_with);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["name"], Value::Null);
-    //     assert_eq!(v["commit"][1]["name"], Value::Null);
-    // }
+    #[test]
+    fn test_filter_1() {
+        let some_json = r#"
+        {
+            "name": "camilo"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("name")];
+        v = filter_key(v, &stack);
+        assert_eq!(v["name"], "camilo");
+    }
+    #[test]
+    fn test_filter_2() {
+        let some_json = r#"
+        {
+            "name": "camilo",
+            "nombre": "andres"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("name")];
+        v = filter_key(v, &stack);
+        assert_eq!(v["nombre"], Value::Null);
+    }
+    #[test]
+    fn test_filter_3() {
+        let some_json = r#"
+        {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("author"), String::from("name")];
+        v = filter_key(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["author"]["name"], "bigmoonbit");
+        assert_eq!(v["author"]["nombre"], Value::Null);
+    }
+    #[test]
+    fn test_filter_4() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            String::from("commit"),
+            String::from("author"),
+            String::from("name"),
+        ];
+        v = filter_key(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
+        assert_eq!(v["commit"]["author"]["nombre"], Value::Null);
+    }
+    #[test]
+    fn test_filter_5() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("commit")];
+        v = filter_key(v, &stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
+        assert_eq!(v["commit"]["author"]["nombre"], "hola");
+    }
+    #[test]
+    fn test_grammar_1() {
+        let input = String::from("s/sha/new_sha/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let mut _pattern: String;
+        let mut _replacement: String;
+        let mut _flags: String;
+        for pair in parsed.into_iter().next().unwrap().into_inner() {
+            match pair.as_rule() {
+                Rule::pattern => _pattern = pair.as_str().to_string(),
+                Rule::replacement => _replacement = pair.as_str().to_string(),
+                Rule::flags => _flags = pair.as_str().to_string(),
+                _ => {}
+            }
+        }
+    }
+    #[test]
+    fn test_grammar_2() {
+        let input = String::from("/c/s/sha/new_sha/g");
+        // let input = String::from("s/sha/new_sha/g");
+        let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let input = String::from("/c/ s/sha/new_sha/g");
+        // let input = String::from("s/sha/new_sha/g");
+        let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let input = String::from("/c/./d/ s/sha/new_sha/g");
+        // let input = String::from("s/sha/new_sha/g");
+        let _parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        let input = String::from("/c/./d/./e/ s/sha/new_sha/g");
+        // let input = String::from("s/sha/new_sha/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        for pair in parsed.into_iter().next().unwrap().into_inner() {
+            match pair.as_rule() {
+                Rule::pattern => assert_eq!(pair.as_str(), "sha"),
+                Rule::replacement => assert_eq!(pair.as_str(), "new_sha"),
+                Rule::flags => assert_eq!(pair.as_str(), "g"),
+                Rule::range_regex => assert_eq!(pair.as_str(), "/c/./d/./e/"),
+                _ => {}
+            }
+        }
+    }
+    #[test]
+    fn test_grammar_3() {
+        let input = String::from("/commit/s/a/XXXX/g");
+        let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
+        for pair in parsed.into_iter().next().unwrap().into_inner() {
+            match pair.as_rule() {
+                Rule::pattern => assert_eq!(pair.as_str(), "a"),
+                Rule::replacement => assert_eq!(pair.as_str(), "XXXX"),
+                Rule::flags => assert_eq!(pair.as_str(), "g"),
+                Rule::range_regex => assert_eq!(pair.as_str(), "/commit/"),
+                _ => {}
+            }
+        }
+    }
+    #[test]
+    fn test_grammar_4() {
+        let input = String::from("1,3s/a/XXXX/g");
+        let (stack, command) = parse_grammar(&input);
+        match command {
+            JedCommand::Substitute(params) => {
+                assert_eq!(params.pattern.as_str(), "a");
+                assert_eq!(params.replacement, "XXXX");
+                assert_eq!(params.flags, "g");
+            }
+            _ => assert!(false),
+        }
+        assert_eq!(stack.len(), 1);
+        match stack.first().unwrap() {
+            RangeType::Array(array_range) => {
+                assert_eq!(array_range.begin, 1);
+                assert_eq!(array_range.end, 3);
+            }
+            _ => assert!(false),
+        }
+        let input = String::from("/first_key/.1,3./second_key/s/a/b/g");
+        let (stack, command) = parse_grammar(&input);
+        match command {
+            JedCommand::Substitute(params) => {
+                assert_eq!(params.pattern.as_str(), "a");
+                assert_eq!(params.replacement, "b");
+                assert_eq!(params.flags, "g");
+            }
+            _ => assert!(false),
+        }
+        assert_eq!(stack.len(), 3);
+        match &stack[0] {
+            RangeType::Key(key_regex) => {
+                assert_eq!(
+                    key_regex.as_str(),
+                    Regex::new("first_key").unwrap().as_str()
+                );
+            }
+            _ => assert!(false),
+        }
+        match &stack[1] {
+            RangeType::Array(array_range) => {
+                assert_eq!(array_range.begin, 1);
+                assert_eq!(array_range.end, 3);
+            }
+            _ => assert!(false),
+        }
+        match &stack[2] {
+            RangeType::Key(key_regex) => {
+                assert_eq!(
+                    key_regex.as_str(),
+                    Regex::new("second_key").unwrap().as_str()
+                );
+            }
+            _ => assert!(false),
+        }
+    }
+    #[test]
+    fn test_grammar_5() {
+        let input = String::from("1,30p");
+        let (stack, command) = parse_grammar(&input);
+        match command {
+            JedCommand::Print => {
+                assert!(true)
+            }
+            _ => assert!(false),
+        }
+        let input = String::from("/connectors/.1,30p");
+        let (stack, command) = parse_grammar(&input);
+        match command {
+            JedCommand::Print => {
+                assert!(true)
+            }
+            _ => assert!(false),
+        }
+        match &stack[0] {
+            RangeType::Key(key_regex) => {
+                assert_eq!(
+                    key_regex.as_str(),
+                    Regex::new("connectors").unwrap().as_str()
+                );
+            }
+            _ => assert!(false),
+        }
+        match &stack[1] {
+            RangeType::Array(array_range) => {
+                assert_eq!(array_range.begin, 1);
+                assert_eq!(array_range.end, 30);
+            }
+            _ => assert!(false),
+        }
+        let input = String::from("/connectors/.1,2 p");
+        let (_, _) = parse_grammar(&input);
+    }
+    #[test]
+    fn test_filter_substitute_1() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hoola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Key(Regex::new("author").unwrap()),
+            RangeType::Key(Regex::new("name").unwrap()),
+        ];
+        let old_regex = Regex::new("oo").unwrap();
+        let new_regex = String::from("AA");
+        v = substitute_values_on_specified_ranges(v, stack, &old_regex, &new_regex);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["name"], "bigmAAnbit");
+        assert_eq!(v["commit"]["author"]["nombre"], "hoola");
+    }
+    #[test]
+    fn test_filter_substitute_with_arrays() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![RangeType::Key(Regex::new("commit").unwrap())];
+        let old_regex = Regex::new("a").unwrap();
+        let new_regex = String::from("x");
+        v = substitute_values_on_specified_ranges(v, stack, &old_regex, &new_regex);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "cxmilo");
+        assert_eq!(v["commit"][1]["name"], "xndres");
+    }
+    #[test]
+    fn test_filter_substitute_with_arrays_and_ranges() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        let search_regex = Regex::new("a").unwrap();
+        let replace_with = String::from("x");
+        v = substitute_values_on_specified_ranges(v, stack, &search_regex, &replace_with);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "cxmilo");
+        assert_eq!(v["commit"][1]["name"], "andres");
+    }
+    #[test]
+    fn test_filter_substitute_with_arrays_and_ranges_2() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Key(Regex::new("name").unwrap()),
+        ];
+        let search_regex = Regex::new("a").unwrap();
+        let replace_with = String::from("x");
+        v = substitute_values_on_specified_ranges(v, stack, &search_regex, &replace_with);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], Value::Null);
+        assert_eq!(v["commit"][1]["name"], Value::Null);
+    }
     // // /c/.,3./e/ -> vec!["c", "d", "e"]
-    // #[test]
-    // fn test_parsing_regex() {
-    //     let range_regex = String::from("/c/./d/./e/");
-    //     let answer = vec![String::from("c"), String::from("d"), String::from("e")];
+    #[test]
+    fn test_parsing_regex() {
+        let range_regex = String::from("/c/./d/./e/");
+        let answer = vec![String::from("c"), String::from("d"), String::from("e")];
 
-    //     let vec_range_regex = range_regex
-    //         .replace("/", "")
-    //         .split(".")
-    //         .map(|s| s.to_string())
-    //         .collect::<Vec<String>>();
-    //     assert_eq!(vec_range_regex, answer);
-    // }
+        let vec_range_regex = range_regex
+            .replace("/", "")
+            .split(".")
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        assert_eq!(vec_range_regex, answer);
+    }
     #[test]
     fn test_print_1() {
         let some_json = r#"
