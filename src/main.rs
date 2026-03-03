@@ -835,6 +835,10 @@ fn apply_on_range(
                                         operate_on_array,
                                         operate_on_string,
                                     ));
+                                } else if keep_non_matching && {
+                                    i < array_range.begin || i > array_range.end
+                                } {
+                                    new_vec.push(val.clone());
                                 }
                             }
                             return serde_json::Value::Array(new_vec);
@@ -1894,6 +1898,50 @@ mod tests {
         match v.get("siret") {
             Some(_) => assert!(false),
             None => assert!(true),
+        };
+    }
+    #[test]
+    fn test_delete_5() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "a": true,
+              "b": true
+            },
+            {
+              "a": true,
+              "b": true
+            }
+          ],
+          "total": 1839
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+            RangeType::Key(Regex::new("a").unwrap()),
+        ];
+        v = delete_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v.get("total") {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        };
+        match v["connectors"][0].get("a") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        match v["connectors"][0].get("b") {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        };
+        match v["connectors"][1].get("a") {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        };
+        match v["connectors"][1].get("b") {
+            Some(_) => assert!(true),
+            None => assert!(false),
         };
     }
 }
