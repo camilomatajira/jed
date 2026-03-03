@@ -108,7 +108,7 @@ fn main() {
             }
         }
         JedCommand::Print => {
-            v = print2_on_specified_ranges(v, stack);
+            v = print_on_specified_ranges(v, stack);
         }
         JedCommand::Delete => {
             // v = delete_on_specified_ranges(v, &stack);
@@ -416,7 +416,7 @@ fn identity(v: Value) -> Value {
 //         &operate_on_string,
 //     )
 // }
-fn print2_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
+fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
     fn operate_on_object(
         map: Map<String, Value>,
         re: Regex,
@@ -1514,59 +1514,59 @@ mod tests {
     //         .collect::<Vec<String>>();
     //     assert_eq!(vec_range_regex, answer);
     // }
-    // #[test]
-    // fn test_print_1() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         {
-    //           "name": "camilo"
-    //         },
-    //         {
-    //           "name": "andres"
-    //         }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new("commit").unwrap()),
-    //         RangeType::Array(ArrayRange { begin: 0, end: 0 }),
-    //     ];
-    //     v = print_on_specified_ranges(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["name"], "camilo");
-    //     assert_eq!(v["commit"][1]["name"], Value::Null);
+    #[test]
+    fn test_print_1() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("commit").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+        ];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "camilo");
+        assert_eq!(v["commit"][1]["name"], Value::Null);
 
-    //     let stack = vec![RangeType::Key(Regex::new("doesnt-exists").unwrap())];
-    //     v = print_on_specified_ranges(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["name"], Value::Null);
-    //     assert_eq!(v["commit"][1]["name"], Value::Null);
-    // }
-    // #[test]
-    // fn test_print_2() {
-    //     let some_json = r#"
-    //     {
-    //       "connectors": [
-    //         {
-    //           "account_types": [
-    //             "checking"
-    //           ],
-    //           "account_usages": []
-    //          }
-    //       ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new("connectors").unwrap()),
-    //         RangeType::Array(ArrayRange { begin: 0, end: 0 }),
-    //         RangeType::Key(Regex::new(".*type.*").unwrap()),
-    //     ];
-    //     v = print_on_specified_ranges(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["connectors"][0]["account_types"][0], "checking");
-    //     assert_eq!(v["connectors"][0]["account_usages"], Value::Null);
-    // }
+        let stack = vec![RangeType::Key(Regex::new("doesnt-exists").unwrap())];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], Value::Null);
+        assert_eq!(v["commit"][1]["name"], Value::Null);
+    }
+    #[test]
+    fn test_print_2() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "account_types": [
+                "checking"
+              ],
+              "account_usages": []
+             }
+          ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("connectors").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+            RangeType::Key(Regex::new(".*type.*").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["connectors"][0]["account_types"][0], "checking");
+        assert_eq!(v["connectors"][0]["account_usages"], Value::Null);
+    }
     #[test]
     fn test_print_1_flexible() {
         let some_json = r#"
@@ -1581,7 +1581,7 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"]["account_types"][0], "checking");
         assert_eq!(v["connectors"]["account_usages"], Value::Null);
@@ -1605,7 +1605,7 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["account_types"][0], "checking");
         match v["connectors"][0].get("account_usages") {
@@ -1630,7 +1630,7 @@ mod tests {
         let mut stack = vec![RangeType::Key(
             Regex::new("something that does not exists").unwrap(),
         )];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v, Value::Null);
     }
@@ -1656,7 +1656,7 @@ mod tests {
             RangeType::Key(Regex::new("key1").unwrap()),
             RangeType::Key(Regex::new("key112").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["key1"]["key112"], "b");
         match v["key1"].get("key11") {
@@ -1682,7 +1682,7 @@ mod tests {
             RangeType::Key(Regex::new("stability").unwrap()),
             RangeType::Key(Regex::new("last_update").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
 
@@ -1691,7 +1691,7 @@ mod tests {
             RangeType::Array(ArrayRange { begin: 0, end: 0 }),
             RangeType::Key(Regex::new("stability").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
     }
@@ -1706,7 +1706,7 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let mut stack = vec![RangeType::Array(ArrayRange { begin: 0, end: 0 })];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0], "1");
     }
@@ -1733,82 +1733,82 @@ mod tests {
             RangeType::Array(ArrayRange { begin: 0, end: 1 }),
             RangeType::Key(Regex::new("account").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, stack);
+        v = print_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         match v["connectors"][1].get("something_that_should_not") {
             Some(_) => assert!(false),
             None => assert!(true),
         };
     }
-    // #[test]
-    // fn test_print_3() {
-    //     let some_json = r#"
-    //     {
-    //     "connectors": [
-    //     {
-    //       "siret": null,
-    //       "slug": null,
-    //       "stability": {
-    //         "last_update": "2026-02-07 16:03:02"
-    //       },
-    //       "sync_periodicity": null
-    //     }
-    //     ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new("connectors").unwrap()),
-    //         RangeType::Array(ArrayRange { begin: 0, end: 0 }),
-    //         RangeType::Key(Regex::new("^s").unwrap()),
-    //         RangeType::Key(Regex::new("last").unwrap()),
-    //     ];
-    //     v = print_on_specified_ranges(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     match v["connectors"][0].get("siret") {
-    //         Some(_) => assert!(false),
-    //         None => assert!(true),
-    //     };
-    // }
-    // #[test]
-    // fn test_print_4() {
-    //     let some_json = r#"
-    //     {
-    //       "siret": null
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![];
-    //     v = print_on_specified_ranges(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     match v.get("siret") {
-    //         Some(_) => assert!(true),
-    //         None => assert!(false),
-    //     };
-    // }
-    // #[test]
-    // fn test_print_6() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         {
-    //           "name": "camilo"
-    //         },
-    //         {
-    //           "name": "andres"
-    //         }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new(".*").unwrap()),
-    //         RangeType::Array(ArrayRange { begin: 0, end: 100 }),
-    //         RangeType::Key(Regex::new(".*").unwrap()),
-    //         RangeType::Value(Regex::new("^c").unwrap()),
-    //     ];
-    //     v = print_on_specified_ranges(v, &stack);
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"][0]["name"], "camilo");
-    //     assert_eq!(v["commit"][1], Value::Null);
-    // }
+    #[test]
+    fn test_print_3() {
+        let some_json = r#"
+        {
+        "connectors": [
+        {
+          "siret": null,
+          "slug": null,
+          "stability": {
+            "last_update": "2026-02-07 16:03:02"
+          },
+          "sync_periodicity": null
+        }
+        ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("connectors").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 0 }),
+            RangeType::Key(Regex::new("^s").unwrap()),
+            RangeType::Key(Regex::new("last").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"][0].get("siret") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+    }
+    #[test]
+    fn test_print_4() {
+        let some_json = r#"
+        {
+          "siret": null
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v.get("siret") {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        };
+    }
+    #[test]
+    fn test_print_6() {
+        let some_json = r#"
+        {
+          "commit": [
+            {
+              "name": "camilo"
+            },
+            {
+              "name": "andres"
+            }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Array(ArrayRange { begin: 0, end: 100 }),
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Value(Regex::new("^c").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"][0]["name"], "camilo");
+        assert_eq!(v["commit"][1], Value::Null);
+    }
     // #[test]
     // fn test_delete_1() {
     //     let some_json = r#"
