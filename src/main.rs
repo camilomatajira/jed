@@ -1172,17 +1172,17 @@ mod tests {
         v = substitute_values(v, &Regex::new(".+").unwrap(), &String::from("hola"));
         assert_eq!(v["sha"], "hola");
     }
-    // #[test]
-    // fn test_filter_0() {
-    //     let some_json = r#"
-    //     {
-    //         "name": "camilo"
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![String::from("nothing")];
-    //     v = filter_key(v, &stack);
-    //     assert_eq!(v["name"], Value::Null);
-    // }
+    #[test]
+    fn test_filter_0() {
+        let some_json = r#"
+        {
+            "name": "camilo"
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![String::from("nothing")];
+        v = filter_key(v, &stack);
+        assert_eq!(v["name"], Value::Null);
+    }
     // #[test]
     // fn test_filter_1() {
     //     let some_json = r#"
