@@ -86,7 +86,7 @@ fn main() {
 
     let input = &cli.expression;
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
-    let (mut stack, command) = parse_grammar(input);
+    let (stack, command) = parse_grammar(input);
 
     match command {
         JedCommand::Substitute(params) => {
@@ -108,7 +108,7 @@ fn main() {
             }
         }
         JedCommand::Print => {
-            v = print2_on_specified_ranges(v, &mut stack);
+            v = print2_on_specified_ranges(v, stack);
         }
         JedCommand::Delete => {
             // v = delete_on_specified_ranges(v, &stack);
@@ -416,18 +416,17 @@ fn identity(v: Value) -> Value {
 //         &operate_on_string,
 //     )
 // }
-fn print2_on_specified_ranges(v: Value, stack: &mut Vec<RangeType>) -> Value {
+fn print2_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
     fn operate_on_object(
         map: Map<String, Value>,
         re: Regex,
-        stack: &mut Vec<RangeType>,
+        stack: Vec<RangeType>,
         stack_anchored: bool,
     ) -> Value {
         // let operate_on_object = |map: Map<String, Value>, re: Regex, stack: &Vec<RangeType>| -> Value {
         let mut new_map: Map<String, Value> = Map::new();
         // It was already popped before
         if stack_anchored {
-            stack.pop();
             for (k, v) in map {
                 if re.find(&k).is_some() {
                     new_map.insert(k.clone(), v.clone());
@@ -440,7 +439,7 @@ fn print2_on_specified_ranges(v: Value, stack: &mut Vec<RangeType>) -> Value {
                 } else {
                     let new_v = apply_on_range(
                         v.clone(),
-                        stack,
+                        stack.clone(),
                         false,
                         false,
                         &operate_on_object,
@@ -546,10 +545,10 @@ fn print2_on_specified_ranges(v: Value, stack: &mut Vec<RangeType>) -> Value {
 
 fn apply_on_range(
     v: Value,
-    stack: &mut Vec<RangeType>,
+    stack: Vec<RangeType>,
     stack_anchored: bool,
     keep_non_matching: bool,
-    operate_on_object: &dyn Fn(Map<String, Value>, Regex, &mut Vec<RangeType>, bool) -> Value,
+    operate_on_object: &dyn Fn(Map<String, Value>, Regex, Vec<RangeType>, bool) -> Value,
     operate_on_array: &dyn Fn(Vec<Value>, ArrayRange) -> Value,
     operate_on_string: &dyn Fn(String, Regex) -> Value,
 ) -> Value {
@@ -579,7 +578,7 @@ fn apply_on_range(
                                 for (k, v) in &current {
                                     let new_v = apply_on_range(
                                         v.clone(),
-                                        stack,
+                                        stack.clone(),
                                         false,
                                         keep_non_matching,
                                         operate_on_object,
@@ -622,7 +621,7 @@ fn apply_on_range(
                             for i in current {
                                 let new_v = apply_on_range(
                                     i.clone(),
-                                    stack,
+                                    stack.clone(),
                                     stack_anchored,
                                     keep_non_matching,
                                     operate_on_object,
@@ -686,7 +685,7 @@ fn apply_on_range(
                                     if re.find(&k).is_some() {
                                         let new_v = apply_on_range(
                                             v.clone(),
-                                            &mut new_stack,
+                                            new_stack.clone(),
                                             true,
                                             keep_non_matching,
                                             operate_on_object,
@@ -703,7 +702,7 @@ fn apply_on_range(
                                     if re.find(&k).is_some() {
                                         let new_v = apply_on_range(
                                             v.clone(),
-                                            &mut new_stack,
+                                            new_stack.clone(),
                                             true,
                                             keep_non_matching,
                                             operate_on_object,
@@ -716,7 +715,7 @@ fn apply_on_range(
                                     } else {
                                         let new_v = apply_on_range(
                                             v.clone(),
-                                            stack,
+                                            stack.clone(),
                                             false,
                                             keep_non_matching,
                                             operate_on_object,
@@ -750,7 +749,7 @@ fn apply_on_range(
                                 for (k, v) in &current {
                                     let new_v = apply_on_range(
                                         v.clone(),
-                                        stack,
+                                        stack.clone(),
                                         false,
                                         keep_non_matching,
                                         operate_on_object,
@@ -799,7 +798,7 @@ fn apply_on_range(
                                 for val in &v {
                                     let new_v = apply_on_range(
                                         val.clone(),
-                                        &mut new_stack,
+                                        new_stack.clone(),
                                         false,
                                         keep_non_matching,
                                         operate_on_object,
@@ -822,7 +821,7 @@ fn apply_on_range(
                                 if i >= array_range.begin && i <= array_range.end {
                                     new_vec.push(apply_on_range(
                                         val.clone(),
-                                        &mut new_stack,
+                                        new_stack.clone(),
                                         true,
                                         keep_non_matching,
                                         operate_on_object,
@@ -1582,7 +1581,7 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"]["account_types"][0], "checking");
         assert_eq!(v["connectors"]["account_usages"], Value::Null);
@@ -1606,7 +1605,7 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["account_types"][0], "checking");
         match v["connectors"][0].get("account_usages") {
@@ -1631,7 +1630,7 @@ mod tests {
         let mut stack = vec![RangeType::Key(
             Regex::new("something that does not exists").unwrap(),
         )];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v, Value::Null);
     }
@@ -1657,7 +1656,7 @@ mod tests {
             RangeType::Key(Regex::new("key1").unwrap()),
             RangeType::Key(Regex::new("key112").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["key1"]["key112"], "b");
         match v["key1"].get("key11") {
@@ -1683,7 +1682,7 @@ mod tests {
             RangeType::Key(Regex::new("stability").unwrap()),
             RangeType::Key(Regex::new("last_update").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
 
@@ -1692,7 +1691,7 @@ mod tests {
             RangeType::Array(ArrayRange { begin: 0, end: 0 }),
             RangeType::Key(Regex::new("stability").unwrap()),
         ];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
     }
@@ -1707,9 +1706,39 @@ mod tests {
         }"#;
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let mut stack = vec![RangeType::Array(ArrayRange { begin: 0, end: 0 })];
-        v = print2_on_specified_ranges(v, &mut stack);
+        v = print2_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0], "1");
+    }
+    #[test]
+    fn test_print_7_flexible() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "account_types": [
+                "checking"
+              ],
+              "account_usages": []
+            },
+            {
+              "account_types": true,
+              "something_that_should_not": 1
+            }
+          ]
+
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let mut stack = vec![
+            RangeType::Array(ArrayRange { begin: 0, end: 1 }),
+            RangeType::Key(Regex::new("account").unwrap()),
+        ];
+        v = print2_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"][1].get("something_that_should_not") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
     }
     // #[test]
     // fn test_print_3() {
