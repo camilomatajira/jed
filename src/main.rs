@@ -93,7 +93,7 @@ fn main() {
             let pattern = params.pattern;
             let replacement = params.replacement;
             if stack.len() > 0 {
-                // v = substitute_values_on_specified_ranges(v, &stack, &pattern, &replacement);
+                v = substitute_values_on_specified_ranges(v, stack, &pattern, &replacement);
             } else {
                 v = substitute_values(v, &pattern, &replacement);
             }
@@ -102,7 +102,7 @@ fn main() {
             let pattern = params.pattern;
             let replacement = params.replacement;
             if stack.len() > 0 {
-                // v = substitute_keys_on_specified_ranges(v, &stack, &pattern, &replacement);
+                v = substitute_keys_on_specified_ranges(v, stack, &pattern, &replacement);
             } else {
                 v = substitute_keys(v, &pattern, &replacement);
             }
@@ -866,168 +866,170 @@ fn apply_on_range(
 }
 
 /// This function performs the substitution only in the values that match the filter "stack"
-// fn substitute_values_on_specified_ranges(
-//     v: Value,
-//     stack: &Vec<RangeType>,
-//     old_regexp: &Regex,
-//     replace_with: &String,
-// ) -> Value {
-//     apply_on_range(
-//         v,
-//         stack,
-//         true, // keep non-matching nodes (substitute keeps the whole doc)
-//         &|map, re| {
-//             let mut new_map = Map::new();
-//             for (k, v) in map {
-//                 if re.find(&k).is_some() {
-//                     new_map.insert(k, substitute_values(v, old_regexp, replace_with));
-//                 } else {
-//                     new_map.insert(k, v);
-//                 }
-//             }
-//             Value::Object(new_map)
-//         },
-//         &|vec, array_range| {
-//             let new_vec = vec
-//                 .into_iter()
-//                 .enumerate()
-//                 .map(|(i, val)| {
-//                     if i >= array_range.begin && i <= array_range.end {
-//                         substitute_values(val, old_regexp, replace_with)
-//                     } else {
-//                         val
-//                     }
-//                 })
-//                 .collect();
-//             Value::Array(new_vec)
-//         },
-//         &|s, _re| Value::String(s), // strings aren't a range target here
-//     )
-// }
+fn substitute_values_on_specified_ranges(
+    v: Value,
+    stack: Vec<RangeType>,
+    old_regexp: &Regex,
+    replace_with: &String,
+) -> Value {
+    apply_on_range(
+        v,
+        stack,
+        false,
+        true, // keep non-matching nodes (substitute keeps the whole doc)
+        &|map, re, stack, stack_anchored| {
+            let mut new_map = Map::new();
+            for (k, v) in map {
+                if re.find(&k).is_some() {
+                    new_map.insert(k, substitute_values(v, old_regexp, replace_with));
+                } else {
+                    new_map.insert(k, v);
+                }
+            }
+            Value::Object(new_map)
+        },
+        &|vec, array_range| {
+            let new_vec = vec
+                .into_iter()
+                .enumerate()
+                .map(|(i, val)| {
+                    if i >= array_range.begin && i <= array_range.end {
+                        substitute_values(val, old_regexp, replace_with)
+                    } else {
+                        val
+                    }
+                })
+                .collect();
+            Value::Array(new_vec)
+        },
+        &|s, _re| Value::String(s), // strings aren't a range target here
+    )
+}
 
-// fn substitute_keys_on_specified_ranges(
-//     v: Value,
-//     stack: &Vec<RangeType>,
-//     replace_regex: &Regex,
-//     replace_with: &String,
-// ) -> Value {
-//     apply_on_range(
-//         v,
-//         stack,
-//         true, // keep non-matching nodes (substitute keeps the whole doc)
-//         &|map, re| {
-//             let mut new_map: Map<String, Value> = Map::new();
-//             for (k, v) in map {
-//                 if re.find(&k).is_some() {
-//                     let new_key = replace_regex.replace_all(&k, replace_with).into_owned();
-//                     let new_v = substitute_keys(v, replace_regex, replace_with);
-//                     new_map.insert(new_key, new_v);
-//                 } else {
-//                     new_map.insert(k, v);
-//                 }
-//             }
-//             Value::Object(new_map)
-//         },
-//         &|vec, array_range| {
-//             let new_vec = vec
-//                 .into_iter()
-//                 .enumerate()
-//                 .map(|(i, val)| {
-//                     if i >= array_range.begin && i <= array_range.end {
-//                         substitute_keys(val, replace_regex, replace_with)
-//                     } else {
-//                         val
-//                     }
-//                 })
-//                 .collect();
-//             Value::Array(new_vec)
-//         },
-//         &|s, _re| Value::String(s), // strings aren't a range target here
-//     )
-// }
+fn substitute_keys_on_specified_ranges(
+    v: Value,
+    stack: Vec<RangeType>,
+    replace_regex: &Regex,
+    replace_with: &String,
+) -> Value {
+    apply_on_range(
+        v,
+        stack,
+        false,
+        true, // keep non-matching nodes (substitute keeps the whole doc)
+        &|map, re, stack, stack_anchored| {
+            let mut new_map: Map<String, Value> = Map::new();
+            for (k, v) in map {
+                if re.find(&k).is_some() {
+                    let new_key = replace_regex.replace_all(&k, replace_with).into_owned();
+                    let new_v = substitute_keys(v, replace_regex, replace_with);
+                    new_map.insert(new_key, new_v);
+                } else {
+                    new_map.insert(k, v);
+                }
+            }
+            Value::Object(new_map)
+        },
+        &|vec, array_range| {
+            let new_vec = vec
+                .into_iter()
+                .enumerate()
+                .map(|(i, val)| {
+                    if i >= array_range.begin && i <= array_range.end {
+                        substitute_keys(val, replace_regex, replace_with)
+                    } else {
+                        val
+                    }
+                })
+                .collect();
+            Value::Array(new_vec)
+        },
+        &|s, _re| Value::String(s), // strings aren't a range target here
+    )
+}
 
 mod tests {
     use super::*;
-    // #[test]
-    // fn test_substitute_keys_1() {
-    //     let some_json = r#"
-    //     {"sha": "0eb3da11ed489189963045a3d4eb21ba343736cb", "node_id": "C_kwDOAE3WVdoAKDBlYjNkYTExZWQ0ODkxODk5NjMwNDVhM2Q0ZWIyMWJhMzQzNzM2Y2I"}"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let replace_regex = Regex::new("sha").unwrap();
-    //     v = substitute_keys(v, &replace_regex, &String::from("new_sha"));
-    //     assert_eq!(v["new_sha"], "0eb3da11ed489189963045a3d4eb21ba343736cb");
-    // }
+    #[test]
+    fn test_substitute_keys_1() {
+        let some_json = r#"
+        {"sha": "0eb3da11ed489189963045a3d4eb21ba343736cb", "node_id": "C_kwDOAE3WVdoAKDBlYjNkYTExZWQ0ODkxODk5NjMwNDVhM2Q0ZWIyMWJhMzQzNzM2Y2I"}"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let replace_regex = Regex::new("sha").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("new_sha"));
+        assert_eq!(v["new_sha"], "0eb3da11ed489189963045a3d4eb21ba343736cb");
+    }
 
-    // #[test]
-    // fn test_substitute_keys_recursivity() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let replace_regex = Regex::new("a").unwrap();
-    //     v = substitute_keys(v, &replace_regex, &String::from("o"));
-    //     assert_eq!(v["commit"]["outhor"]["nome"], "bigmoonbit");
-    // }
-    // #[test]
-    // fn test_substitute_keys_repeated_keys_keeps_last() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "bigmoonbit",
-    //           "nombre": "hola"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let replace_regex = Regex::new("nombre").unwrap();
-    //     v = substitute_keys(v, &replace_regex, &String::from("name"));
-    //     assert_eq!(v["commit"]["author"]["name"], "hola");
-    // }
-    // #[test]
-    // fn test_substitute_keys_recursivity_inside_lists() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": [
-    //         { "author": "camilo" },
-    //         { "author": "andres" }
-    //         ]
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let replace_regex = Regex::new("author").unwrap();
-    //     v = substitute_keys(v, &replace_regex, &String::from("autor"));
-    //     assert_eq!(v["commit"][0]["autor"], "camilo");
-    //     assert_eq!(v["commit"][1]["autor"], "andres");
-    // }
-    // #[test]
-    // fn test_substitute_keys_with_filters() {
-    //     let some_json = r#"
-    //     {
-    //       "commit": {
-    //         "author": {
-    //           "name": "camilo"
-    //         },
-    //         "contributor": {
-    //           "name": "camilo"
-    //         }
-    //     }
-    //     }"#;
-    //     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    //     let stack = vec![
-    //         RangeType::Key(Regex::new(".*").unwrap()),
-    //         RangeType::Key(Regex::new("author").unwrap()),
-    //     ];
-    //     let replace_regex = Regex::new("name").unwrap();
-    //     v = substitute_keys_on_specified_ranges(v, &stack, &replace_regex, &String::from("nom"));
-    //     println!("{}", serde_json::to_string_pretty(&v).unwrap());
-    //     assert_eq!(v["commit"]["author"]["nom"], "camilo");
-    //     assert_eq!(v["commit"]["contributor"]["name"], "camilo");
-    // }
+    #[test]
+    fn test_substitute_keys_recursivity() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let replace_regex = Regex::new("a").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("o"));
+        assert_eq!(v["commit"]["outhor"]["nome"], "bigmoonbit");
+    }
+    #[test]
+    fn test_substitute_keys_repeated_keys_keeps_last() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "bigmoonbit",
+              "nombre": "hola"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let replace_regex = Regex::new("nombre").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("name"));
+        assert_eq!(v["commit"]["author"]["name"], "hola");
+    }
+    #[test]
+    fn test_substitute_keys_recursivity_inside_lists() {
+        let some_json = r#"
+        {
+          "commit": [
+            { "author": "camilo" },
+            { "author": "andres" }
+            ]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let replace_regex = Regex::new("author").unwrap();
+        v = substitute_keys(v, &replace_regex, &String::from("autor"));
+        assert_eq!(v["commit"][0]["autor"], "camilo");
+        assert_eq!(v["commit"][1]["autor"], "andres");
+    }
+    #[test]
+    fn test_substitute_keys_with_filters() {
+        let some_json = r#"
+        {
+          "commit": {
+            "author": {
+              "name": "camilo"
+            },
+            "contributor": {
+              "name": "camilo"
+            }
+        }
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new(".*").unwrap()),
+            RangeType::Key(Regex::new("author").unwrap()),
+        ];
+        let replace_regex = Regex::new("name").unwrap();
+        v = substitute_keys_on_specified_ranges(v, stack, &replace_regex, &String::from("nom"));
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["commit"]["author"]["nom"], "camilo");
+        assert_eq!(v["commit"]["contributor"]["name"], "camilo");
+    }
     // #[test]
     // fn test_substitute_keys_with_filters_2() {
     //     let some_json = r#"
