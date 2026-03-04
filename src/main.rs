@@ -423,7 +423,6 @@ fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
         stack: Vec<RangeType>,
         stack_anchored: bool,
     ) -> Value {
-        // let operate_on_object = |map: Map<String, Value>, re: Regex, stack: &Vec<RangeType>| -> Value {
         let mut new_map: Map<String, Value> = Map::new();
         // It was already popped before
         if stack_anchored {
@@ -513,14 +512,74 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
         stack_anchored: bool,
     ) -> Value {
         let mut new_map: Map<String, Value> = Map::new();
-        for (k, v) in map {
-            if re.find(&k).is_none() {
-                // if re.find(&k).is_none() {
-                // TODO
-                new_map.insert(k.clone(), v.clone());
+        // It was already popped before
+        if stack_anchored {
+            for (k, v) in map {
+                if re.find(&k).is_none() {
+                    new_map.insert(k.clone(), v.clone());
+                }
+            }
+        } else {
+            for (k, v) in map {
+                if re.find(&k).is_none() {
+                    let new_v = apply_on_range(
+                        v.clone(),
+                        stack.clone(),
+                        false,
+                        true,
+                        &operate_on_object,
+                        &operate_on_array,
+                        &operate_on_string,
+                    );
+                    match &new_v {
+                        Value::Array(array) => {
+                            if array.len() > 0 {
+                                new_map.insert(k.clone(), new_v.clone());
+                            }
+                        }
+                        Value::Object(object) => {
+                            if object.len() > 0 {
+                                new_map.insert(k.clone(), new_v.clone());
+                            }
+                        }
+                        Value::Null => {}
+                        _ => {
+                            new_map.insert(k.clone(), new_v.clone());
+                        }
+                    }
+                } else {
+                    let new_v = apply_on_range(
+                        v.clone(),
+                        stack.clone(),
+                        true,
+                        false,
+                        &operate_on_object,
+                        &operate_on_array,
+                        &operate_on_string,
+                    );
+                    match &new_v {
+                        Value::Array(array) => {
+                            if array.len() > 0 {
+                                new_map.insert(k.clone(), new_v.clone());
+                            }
+                        }
+                        Value::Object(object) => {
+                            if object.len() > 0 {
+                                new_map.insert(k.clone(), new_v.clone());
+                            }
+                        }
+                        Value::Null => {}
+                        _ => {
+                            new_map.insert(k.clone(), new_v.clone());
+                        }
+                    }
+                }
             }
         }
-        return serde_json::Value::Object(new_map);
+        if new_map.len() > 0 {
+            return serde_json::Value::Object(new_map);
+        }
+        return serde_json::Value::Null;
     }
     fn operate_on_array(vec: Vec<Value>, array_range: ArrayRange) -> Value {
         let mut new_vec: Vec<Value> = Vec::new();
@@ -614,7 +673,13 @@ fn apply_on_range(
                 Value::String(v) => {
                     let mut new_stack = stack.clone();
                     match new_stack.remove(0) {
-                        RangeType::Key(_) => return serde_json::Value::Null,
+                        RangeType::Key(_) => {
+                            println!("ANDRES!!!!!!");
+                            if keep_non_matching {
+                                return serde_json::Value::String(v);
+                            }
+                            return serde_json::Value::Null;
+                        }
                         RangeType::Array(_) => return serde_json::Value::Null,
                         RangeType::Value(re) => return operate_on_string(v, re),
                     }
@@ -637,6 +702,11 @@ fn apply_on_range(
                                         operate_on_array,
                                         operate_on_string,
                                     );
+                                    println!("camilo");
+                                    println!("**************************************");
+                                    println!("{}", serde_json::to_string_pretty(&i).unwrap());
+                                    println!("{}", serde_json::to_string_pretty(&new_v).unwrap());
+                                    println!("**************************************");
                                     match &new_v {
                                         Value::Array(array) => {
                                             if array.len() > 0 {
@@ -648,7 +718,9 @@ fn apply_on_range(
                                                 result.push(new_v);
                                             }
                                         }
-                                        Value::Null => {}
+                                        Value::Null => {
+                                            println!("haciendo nada");
+                                        }
                                         _ => {
                                             result.push(new_v);
                                         }
@@ -1841,12 +1913,14 @@ mod tests {
             RangeType::Array(ArrayRange { begin: 0, end: 0 }),
         ];
         v = delete_on_specified_ranges(v, stack);
+        println!("Result 1:");
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["commit"][0]["name"], "andres");
 
         let mut v: Value = serde_json::from_str(some_json).unwrap();
         let stack = vec![RangeType::Key(Regex::new("doesnt-exists").unwrap())];
         v = delete_on_specified_ranges(v, stack);
+        println!("Result 2:");
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["commit"][0]["name"], "camilo");
         assert_eq!(v["commit"][1]["name"], "andres");
@@ -1943,5 +2017,36 @@ mod tests {
             Some(_) => assert!(true),
             None => assert!(false),
         };
+    }
+    #[test]
+    fn test_delete_6() {
+        let some_json = r#"
+        {
+      "connectors": [
+        {
+          "account_types": [
+            "checking"
+          ]
+        }]
+        }"#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![RangeType::Key(Regex::new("^a").unwrap())];
+        v = delete_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"].get(0) {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+    }
+    #[test]
+    fn test_delete_7() {
+        let some_json = r#"
+          "connectors"
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![RangeType::Key(Regex::new("doesnt exists").unwrap())];
+        v = delete_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v, "connectors");
     }
 }
