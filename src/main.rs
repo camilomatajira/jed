@@ -497,9 +497,8 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                     );
                     match &new_v {
                         Value::Array(array) => {
-                            if array.len() > 0 {
-                                new_map.insert(k.clone(), new_v.clone());
-                            }
+                            // Allows empty arrays to be returned
+                            new_map.insert(k.clone(), new_v.clone());
                         }
                         Value::Object(object) => {
                             if object.len() > 0 {
@@ -512,31 +511,32 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                         }
                     }
                 } else {
-                    let new_v = apply_on_range(
-                        v.clone(),
-                        stack.clone(),
-                        true,
-                        false,
-                        &operate_on_object,
-                        &operate_on_array,
-                        &operate_on_string,
-                    );
-                    match &new_v {
-                        Value::Array(array) => {
-                            if array.len() > 0 {
-                                new_map.insert(k.clone(), new_v.clone());
-                            }
-                        }
-                        Value::Object(object) => {
-                            if object.len() > 0 {
-                                new_map.insert(k.clone(), new_v.clone());
-                            }
-                        }
-                        Value::Null => {}
-                        _ => {
-                            new_map.insert(k.clone(), new_v.clone());
-                        }
-                    }
+                    // return Value::Null;
+                    // let new_v = apply_on_range(
+                    //     v.clone(),
+                    //     stack.clone(),
+                    //     true,
+                    //     false,
+                    //     &operate_on_object,
+                    //     &operate_on_array,
+                    //     &operate_on_string,
+                    // );
+                    // match &new_v {
+                    //     Value::Array(array) => {
+                    //         if array.len() > 0 {
+                    //             new_map.insert(k.clone(), new_v.clone());
+                    //         }
+                    //     }
+                    //     Value::Object(object) => {
+                    //         if object.len() > 0 {
+                    //             new_map.insert(k.clone(), new_v.clone());
+                    //         }
+                    //     }
+                    //     Value::Null => {}
+                    //     _ => {
+                    //         new_map.insert(k.clone(), new_v.clone());
+                    //     }
+                    // }
                 }
             }
         }
@@ -686,10 +686,11 @@ fn apply_on_range(
                                         }
                                     }
                                 }
-                                if result.len() > 0 {
-                                    return serde_json::Value::Array(result);
-                                }
-                                return serde_json::Value::Null;
+                                // if result.len() > 0 {
+                                //     return serde_json::Value::Array(result);
+                                // }
+                                return serde_json::Value::Array(result);
+                                // return serde_json::Value::Null;
                             }
                         }
                         RangeType::Array(array_range) => {
@@ -742,7 +743,6 @@ fn apply_on_range(
                                     }
                                 } else {
                                     if re.find(&k).is_some() {
-                                        println!("CAMILO");
                                         let new_v = apply_on_range(
                                             v.clone(),
                                             new_stack.clone(),
@@ -756,9 +756,6 @@ fn apply_on_range(
                                             new_map.insert(k.clone(), new_v);
                                         }
                                     } else {
-                                        println!("***********");
-                                        println!("{}", k);
-                                        println!("ANDRES");
                                         let new_v = apply_on_range(
                                             v.clone(),
                                             stack.clone(),
@@ -2247,5 +2244,32 @@ mod tests {
         v = delete_on_specified_ranges(v, stack);
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["connectors"][0]["capabilities"][0], "bank");
+    }
+    #[test]
+    fn test_delete_9() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "stability": {
+                "last_update": "2026-02-07 16:03:02"
+              }
+            }
+          ]
+        }
+
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![RangeType::Key(Regex::new("^s").unwrap())];
+        v = delete_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v.get("connectors") {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        };
+        match v["connectors"].get(0) {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
     }
 }
