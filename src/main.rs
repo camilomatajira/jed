@@ -742,6 +742,7 @@ fn apply_on_range(
                                     }
                                 } else {
                                     if re.find(&k).is_some() {
+                                        println!("CAMILO");
                                         let new_v = apply_on_range(
                                             v.clone(),
                                             new_stack.clone(),
@@ -755,6 +756,9 @@ fn apply_on_range(
                                             new_map.insert(k.clone(), new_v);
                                         }
                                     } else {
+                                        println!("***********");
+                                        println!("{}", k);
+                                        println!("ANDRES");
                                         let new_v = apply_on_range(
                                             v.clone(),
                                             stack.clone(),
@@ -837,7 +841,7 @@ fn apply_on_range(
                                 for val in &v {
                                     let new_v = apply_on_range(
                                         val.clone(),
-                                        new_stack.clone(),
+                                        stack.clone(),
                                         false,
                                         keep_non_matching,
                                         operate_on_object,
@@ -2016,6 +2020,42 @@ mod tests {
         println!("{}", serde_json::to_string_pretty(&v).unwrap());
         assert_eq!(v["root"]["commit"][0]["name"], "camilo");
         assert_eq!(v["root"]["commit"][1], Value::Null);
+    }
+    #[test]
+    fn test_print_7() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "auth_mechanism": "credentials",
+              "available_auth_mechanisms": [
+                "webauth",
+                "credentials"
+              ],
+              "name": {
+                  "a": "b"
+              },
+              "uuid": "c64a18a7-e071-487e-8318-f01c76896a29"
+            }
+          ]
+        }
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Key(Regex::new("name|uuid|auth").unwrap()),
+            RangeType::Key(Regex::new("^a").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"][0].get("uuid") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        match v["connectors"][0].get("auth_mechanism") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        assert_eq!(v["connectors"][0]["name"]["a"], "b");
     }
     #[test]
     fn test_delete_1() {
