@@ -629,11 +629,34 @@ fn apply_on_range(
                             }
                         }
                         RangeType::Value(_) => {
-                            return if keep_non_matching {
-                                serde_json::Value::Object(current)
+                            if stack_anchored {
+                                return if keep_non_matching {
+                                    serde_json::Value::Object(current)
+                                } else {
+                                    serde_json::Value::Null
+                                };
                             } else {
-                                serde_json::Value::Null
-                            };
+                                let mut new_map: Map<String, Value> = Map::new();
+                                for (k, v) in &current {
+                                    let new_v = apply_on_range(
+                                        v.clone(),
+                                        stack.clone(),
+                                        false,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    if new_v != Value::Null {
+                                        new_map.insert(k.clone(), new_v);
+                                    }
+                                }
+                                if new_map.len() > 0 {
+                                    return serde_json::Value::Object(new_map);
+                                } else {
+                                    return serde_json::Value::Null;
+                                }
+                            }
                         }
                     }
                 }
@@ -699,7 +722,49 @@ fn apply_on_range(
                         RangeType::Array(array_range) => {
                             return operate_on_array(current, array_range);
                         }
-                        RangeType::Value(_) => return serde_json::Value::Null,
+                        RangeType::Value(_) => {
+                            if stack_anchored {
+                                if keep_non_matching {
+                                    return serde_json::Value::Array(current);
+                                } else {
+                                    return serde_json::Value::Null;
+                                }
+                            } else {
+                                let mut result: Vec<Value> = Vec::new();
+                                for i in current {
+                                    let new_v = apply_on_range(
+                                        i.clone(),
+                                        stack.clone(),
+                                        stack_anchored,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    match &new_v {
+                                        Value::Array(array) => {
+                                            if array.len() > 0 {
+                                                result.push(new_v);
+                                            }
+                                        }
+                                        Value::Object(object) => {
+                                            if object.len() > 0 {
+                                                result.push(new_v);
+                                            }
+                                        }
+                                        Value::Null => {}
+                                        _ => {
+                                            result.push(new_v);
+                                        }
+                                    }
+                                }
+                                if result.len() > 0 {
+                                return serde_json::Value::Array(result);
+                                } else{
+                                return serde_json::Value::Null;
+                                }
+                            }
+                            }
                     }
                 }
                 Value::Null => serde_json::Value::Null,
@@ -2076,6 +2141,47 @@ mod tests {
             None => assert!(true),
         };
         assert_eq!(v["connectors"][0]["name"]["a"], "b");
+    }
+    #[test]
+    fn test_print_8() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "auth_mechanism": "credentials",
+              "available_auth_mechanisms": [
+                "webauth",
+                "credentials"
+              ],
+              "some_array": [ "a", "b", "c"],
+              "name": {
+                  "a": "b"
+              },
+              "uuid": "c64a18a7-e071-487e-8318-f01c76896a29"
+            }
+          ]
+        }
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Value(Regex::new("credentials").unwrap()),
+        ];
+        v = print_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"][0].get("uuid") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        match v["connectors"][0].get("some_array") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        match v["connectors"][0].get("name") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        assert_eq!(v["connectors"][0]["auth_mechanism"], "credentials");
+        assert_eq!(v["connectors"][0]["available_auth_mechanisms"][0], "credentials");
     }
     #[test]
     fn test_delete_1() {
