@@ -10,7 +10,6 @@ use serde_json::{Map, Number, Value};
 struct SedParser;
 use std::fs;
 use std::io::Read;
-
 /// Example: Options and flags
 #[derive(ClapParser)]
 struct Cli {
@@ -86,7 +85,7 @@ fn main() {
 
     let input = &cli.expression;
     let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
-    let (stack, command) = parse_grammar(input);
+    let (stack, command) = parse_grammar(input).unwrap();
 
     match command {
         JedCommand::Substitute(params) => {
@@ -122,13 +121,12 @@ fn main() {
     println!("{}", to_colored_json_auto(&v).unwrap());
 }
 
-fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
+fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand), String> {
     let mut stack = Vec::new();
     let parsed = match SedParser::parse(Rule::substitute, &input) {
         Ok(parsed) => parsed,
         Err(e) => {
-            println!("Failed to parse command: {}", e);
-            std::process::exit(1);
+            return Err( format!("Failed to parse command: {}", e));
         }
     };
     let mut pattern = Regex::new("").unwrap();
@@ -162,6 +160,11 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
 
                             stack.push(RangeType::Array(ArrayRange { begin, end }));
                         }
+                        Rule::value_range_regex => {
+                            stack.push(RangeType::Value(
+                                Regex::new(inner_pair.as_str().trim_matches('/')).unwrap(),
+                            ));
+                        }
                         _ => (),
                     }
                 }
@@ -177,32 +180,32 @@ fn parse_grammar(input: &String) -> (Vec<RangeType>, JedCommand) {
     }
 
     if sed_command == 's' {
-        return (
+        return Ok((
             stack,
             JedCommand::Substitute(SubstituteParams {
                 pattern,
                 replacement,
                 flags,
             }),
-        );
+        ));
     }
     if sed_command == 'S' {
-        return (
+        return Ok((
             stack,
             JedCommand::SubstituteKeys(SubstituteParams {
                 pattern,
                 replacement,
                 flags,
             }),
-        );
+        ));
     }
     if sed_command == 'p' {
-        return (stack, JedCommand::Print);
+        return Ok((stack, JedCommand::Print));
     }
     if sed_command == 'd' {
-        return (stack, JedCommand::Delete);
+        return Ok((stack, JedCommand::Delete));
     }
-    return (stack, JedCommand::Other(String::from("temporary")));
+    return Ok((stack, JedCommand::Other(String::from("temporary"))));
 }
 
 /// Performs a substitution on the keys of the JSON recursively.
@@ -1429,7 +1432,7 @@ mod tests {
     #[test]
     fn test_grammar_4() {
         let input = String::from("1,3s/a/XXXX/g");
-        let (stack, command) = parse_grammar(&input);
+        let (stack, command) = parse_grammar(&input).unwrap();
         match command {
             JedCommand::Substitute(params) => {
                 assert_eq!(params.pattern.as_str(), "a");
@@ -1447,7 +1450,7 @@ mod tests {
             _ => assert!(false),
         }
         let input = String::from("/first_key/.1,3./second_key/s/a/b/g");
-        let (stack, command) = parse_grammar(&input);
+        let (stack, command) = parse_grammar(&input).unwrap();
         match command {
             JedCommand::Substitute(params) => {
                 assert_eq!(params.pattern.as_str(), "a");
@@ -1486,7 +1489,7 @@ mod tests {
     #[test]
     fn test_grammar_5() {
         let input = String::from("1,30p");
-        let (stack, command) = parse_grammar(&input);
+        let (stack, command) = parse_grammar(&input).unwrap();
         match command {
             JedCommand::Print => {
                 assert!(true)
@@ -1494,7 +1497,7 @@ mod tests {
             _ => assert!(false),
         }
         let input = String::from("/connectors/.1,30p");
-        let (stack, command) = parse_grammar(&input);
+        let (stack, command) = parse_grammar(&input).unwrap();
         match command {
             JedCommand::Print => {
                 assert!(true)
@@ -1518,7 +1521,27 @@ mod tests {
             _ => assert!(false),
         }
         let input = String::from("/connectors/.1,2 p");
-        let (_, _) = parse_grammar(&input);
+        let (_, _) = parse_grammar(&input).unwrap();
+    }
+    #[test]
+    fn test_grammar_7() {
+        let input = String::from(":/camilo/p");
+        let (stack, command) = parse_grammar(&input).unwrap();
+        match command {
+            JedCommand::Print => {
+                assert!(true)
+            }
+            _ => assert!(false),
+        }
+        match &stack[0] {
+            RangeType::Value(value_regex) => {
+                assert_eq!(
+                    value_regex.as_str(),
+                    Regex::new("camilo").unwrap().as_str()
+                );
+            }
+            _ => assert!(false),
+        }
     }
     #[test]
     fn test_filter_substitute_1() {
