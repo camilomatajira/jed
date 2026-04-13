@@ -1058,6 +1058,17 @@ fn substitute_values_on_specified_ranges(
             .collect();
         Value::Array(new_vec)
     }
+    fn operate_on_string(
+        string: String,
+        value_range: Regex,
+        old_regexp: Regex,
+        replace_with: String,
+    ) -> Value {
+        if value_range.is_match(&string) {
+            return substitute_values(Value::String(string), &old_regexp, &replace_with);
+        }
+        return Value::String(string);
+    }
     apply_on_range(
         v,
         stack,
@@ -1076,7 +1087,9 @@ fn substitute_values_on_specified_ranges(
         &|vec, array_range| {
             operate_on_array(vec, array_range, old_regexp.clone(), replace_with.clone())
         },
-        &|s, _re| Value::String(s), // strings aren't a range target here
+        &|s, _re| {
+            operate_on_string(s, _re, old_regexp.clone(), replace_with.clone())
+        }
     )
 }
 
@@ -1790,6 +1803,32 @@ mod tests {
             "PERRO"
         );
     }
+    #[test]
+    fn test_substitute_value_ranges() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "auth_mechanism": "credentials_spanish",
+              "available_auth_mechanisms": [
+                "webauth",
+                "credentials_french"
+              ]
+            }
+          ]
+        }
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Value(Regex::new("spanish").unwrap()),
+        ];
+        let search_regex = Regex::new("credentials").unwrap();
+        let replace_with = String::from("credenciales");
+        v = substitute_values_on_specified_ranges(v, stack, &search_regex, &replace_with);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        assert_eq!(v["connectors"][0]["auth_mechanism"], "credenciales_spanish");
+        assert_eq!(v["connectors"][0]["available_auth_mechanisms"][1], "credentials_french");
+    }
     // // /c/.,3./e/ -> vec!["c", "d", "e"]
     #[test]
     fn test_parsing_regex() {
@@ -2397,6 +2436,42 @@ mod tests {
             None => assert!(false),
         };
         match v["connectors"].get(0) {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+    }
+    #[test]
+    fn test_delete_10() {
+        let some_json = r#"
+        {
+          "connectors": [
+            {
+              "auth_mechanism": "credentials",
+              "available_auth_mechanisms": [
+                "webauth",
+                "credentials"
+              ],
+              "some_array": [ "a", "b", "c"],
+              "name": {
+                  "a": "b"
+              },
+              "uuid": "c64a18a7-e071-487e-8318-f01c76896a29"
+            }
+          ]
+        }
+        "#;
+        let mut v: Value = serde_json::from_str(some_json).unwrap();
+        let stack = vec![
+            RangeType::Value(Regex::new("credentials").unwrap()),
+        ];
+        v = delete_on_specified_ranges(v, stack);
+        println!("{}", serde_json::to_string_pretty(&v).unwrap());
+        match v["connectors"][0].get("auth_mechanism") {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        };
+        assert_eq!(v["connectors"][0]["available_auth_mechanisms"][0], "webauth");
+        match v["connectors"][0]["available_auth_mechanisms"].get(1) {
             Some(_) => assert!(false),
             None => assert!(true),
         };
