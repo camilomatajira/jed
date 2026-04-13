@@ -4,6 +4,7 @@ use pest::Parser;
 use pest_derive::Parser;
 use regex::Regex;
 use serde_json::{Map, Number, Value};
+use anyhow::{Context, Result};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -42,26 +43,8 @@ struct SubstituteParams {
     flags: String,
 }
 
-// Current Status
-// Substitute command.
-// * Works on values jed -c "s/sha/new_sha/g" file.json
-// * Works with key filter jed -c "/commit/ s/a/XXXX/g" file.json
-// * Works with array ranges jed -c "4,10 s/a/XXXX/g" file.json
-//
-// Print command
-// * Works with key filter and array ranges.
-//   jed -e 'p'
-//   jed -e '/key/ p'
-//   jed -e '1,10 p'
-//
-// What is missing?
-// 1. Wildcard for ranges example *
-// 2. Be able to use '$' for the end of the file in ranges..
-// 3. Add filter on the values!!! :/value/
-// 4. Add the 'd' command
-// 5. Refactor!!!
 
-fn main() {
+fn main() -> Result<()> {
     // Restore default SIGPIPE handling
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
@@ -72,20 +55,17 @@ fn main() {
 
     match cli.input_file {
         Some(ref input_file) => {
-            // println!("Input files: {:?}", input_file);
-            file_contents = std::fs::read_to_string(&input_file)
-                .expect("Something went wrong reading the file")
-                .parse::<String>()
-                .unwrap();
+            file_contents = std::fs::read_to_string(&input_file).with_context(|| format!("Could not read file"))?;
+            file_contents = file_contents.parse::<String>()?;
         }
         None => {
-            std::io::stdin().read_to_string(&mut file_contents).unwrap();
+            std::io::stdin().read_to_string(&mut file_contents)?;
         }
     }
 
     let input = &cli.expression;
-    let mut v: Value = serde_json::from_str(&file_contents).expect("pailla");
-    let (stack, command) = parse_grammar(input).unwrap();
+    let mut v: Value = serde_json::from_str(&file_contents).with_context(|| format!("Could not parse file into JSON"))?;
+    let (stack, command) = parse_grammar(input)?;
 
     match command {
         JedCommand::Substitute(params) => {
@@ -118,29 +98,25 @@ fn main() {
         }
     }
 
-    println!("{}", to_colored_json_auto(&v).unwrap());
+    println!("{}", to_colored_json_auto(&v).context("Failed to colorize JSON output")?);
+    Ok(())
 }
 
-fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand), String> {
+fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
     let mut stack = Vec::new();
-    let parsed = match SedParser::parse(Rule::substitute, &input) {
-        Ok(parsed) => parsed,
-        Err(e) => {
-            return Err( format!("Failed to parse command: {}", e));
-        }
-    };
-    let mut pattern = Regex::new("").unwrap();
+    let parsed = SedParser::parse(Rule::substitute, &input).with_context(|| format!("Parsing the jed command failed: {input}"))?;
+    let mut pattern = Regex::new("")?;
     let mut replacement = String::from("");
     let mut flags = String::from("");
     let mut sed_command = ' ';
-    for pair in parsed.into_iter().next().unwrap().into_inner() {
+    for pair in parsed.into_iter().next().context("Parsing the jed command failed")?.into_inner() {
         match pair.as_rule() {
             Rule::range_regex => {
                 for inner_pair in pair.into_inner() {
                     match inner_pair.as_rule() {
                         Rule::key_range_regex => {
                             stack.push(RangeType::Key(
-                                Regex::new(inner_pair.as_str().trim_matches('/')).unwrap(),
+                                Regex::new(inner_pair.as_str().trim_matches('/')).context("Parsing the regex expression failed")?,
                             ));
                         }
                         Rule::array_range_regex => {
@@ -149,10 +125,10 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand), String>
                             for ip in inner_pair.into_inner() {
                                 match ip.as_rule() {
                                     Rule::array_range_regex_begin => {
-                                        begin = ip.as_str().parse::<usize>().unwrap();
+                                        begin = ip.as_str().parse::<usize>()?;
                                     }
                                     Rule::array_range_regex_end => {
-                                        end = ip.as_str().parse::<usize>().expect(ip.as_str());
+                                        end = ip.as_str().parse::<usize>()?;
                                     }
                                     _ => (),
                                 }
@@ -162,7 +138,7 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand), String>
                         }
                         Rule::value_range_regex => {
                             stack.push(RangeType::Value(
-                                Regex::new(inner_pair.as_str().trim_matches('/')).unwrap(),
+                                Regex::new(inner_pair.as_str().trim_matches('/')).context("Parsing the regex expression failed")?,
                             ));
                         }
                         _ => (),
@@ -170,9 +146,9 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand), String>
                 }
             }
             Rule::sed_command => {
-                sed_command = pair.as_str().chars().next().unwrap();
+                sed_command = pair.as_str().chars().next().context("Failed to parse the Jed command")?;
             }
-            Rule::pattern => pattern = Regex::new(pair.as_str()).unwrap(),
+            Rule::pattern => pattern = Regex::new(pair.as_str()).context("Parsing the search pattern failed")?,
             Rule::replacement => replacement = pair.as_str().to_string(),
             Rule::flags => flags = pair.as_str().to_string(),
             _ => {}
