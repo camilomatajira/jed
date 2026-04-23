@@ -1,8 +1,7 @@
-
+use anyhow::{Context, Result};
 use pest::Parser as _;
 use pest_derive::Parser;
 use regex::Regex;
-use anyhow::{Context, Result};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -33,18 +32,25 @@ pub struct SubstituteParams {
 
 pub fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
     let mut stack = Vec::new();
-    let parsed = SedParser::parse(Rule::substitute, input).with_context(|| format!("Parsing the jed command failed: {input}"))?;
+    let parsed = SedParser::parse(Rule::substitute, input)
+        .with_context(|| format!("Parsing the jed command failed: {input}"))?;
     let mut pattern = Regex::new("")?;
     let mut replacement = String::from("");
     let mut sed_command = ' ';
-    for pair in parsed.into_iter().next().context("Parsing the jed command failed")?.into_inner() {
+    for pair in parsed
+        .into_iter()
+        .next()
+        .context("Parsing the jed command failed")?
+        .into_inner()
+    {
         match pair.as_rule() {
             Rule::range_regex => {
                 for inner_pair in pair.into_inner() {
                     match inner_pair.as_rule() {
                         Rule::key_range_regex => {
                             stack.push(RangeType::Key(
-                                Regex::new(inner_pair.as_str().trim_matches('/')).context("Parsing the regex expression failed")?,
+                                Regex::new(inner_pair.as_str().trim_matches('/'))
+                                    .context("Parsing the regex expression failed")?,
                             ));
                         }
                         Rule::array_range_regex => {
@@ -66,7 +72,8 @@ pub fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
                         }
                         Rule::value_range_regex => {
                             stack.push(RangeType::Value(
-                                Regex::new(inner_pair.as_str().trim_matches('/')).context("Parsing the regex expression failed")?,
+                                Regex::new(inner_pair.as_str().trim_matches('/'))
+                                    .context("Parsing the regex expression failed")?,
                             ));
                         }
                         _ => (),
@@ -74,9 +81,15 @@ pub fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
                 }
             }
             Rule::sed_command => {
-                sed_command = pair.as_str().chars().next().context("Failed to parse the Jed command")?;
+                sed_command = pair
+                    .as_str()
+                    .chars()
+                    .next()
+                    .context("Failed to parse the Jed command")?;
             }
-            Rule::pattern => pattern = Regex::new(pair.as_str()).context("Parsing the search pattern failed")?,
+            Rule::pattern => {
+                pattern = Regex::new(pair.as_str()).context("Parsing the search pattern failed")?
+            }
             Rule::replacement => replacement = pair.as_str().to_string(),
             _ => {}
         }

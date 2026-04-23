@@ -1,7 +1,7 @@
+use anyhow::{Context, Result};
 use clap::Parser as ClapParser;
 use colored_json::to_colored_json_auto;
-use serde_json::{Value};
-use anyhow::{Context, Result};
+use serde_json::Value;
 use std::io::Read;
 #[derive(ClapParser)]
 pub struct Cli {
@@ -10,13 +10,14 @@ pub struct Cli {
     input_file: Option<String>,
 }
 
-
-
 mod grammar;
 use grammar::{parse_grammar, JedCommand};
 
 mod commands;
-use commands::{substitute_values_on_specified_ranges,substitute_keys_on_specified_ranges, substitute_values, print_on_specified_ranges, delete_on_specified_ranges, substitute_keys};
+use commands::{
+    delete_on_specified_ranges, print_on_specified_ranges, substitute_keys,
+    substitute_keys_on_specified_ranges, substitute_values, substitute_values_on_specified_ranges,
+};
 
 fn main() -> Result<()> {
     // Restore default SIGPIPE handling
@@ -29,7 +30,8 @@ fn main() -> Result<()> {
 
     match cli.input_file {
         Some(ref input_file) => {
-            file_contents = std::fs::read_to_string(input_file).with_context(|| "Could not read file".to_string())?;
+            file_contents = std::fs::read_to_string(input_file)
+                .with_context(|| "Could not read file".to_string())?;
             file_contents = file_contents.parse::<String>()?;
         }
         None => {
@@ -38,7 +40,8 @@ fn main() -> Result<()> {
     }
 
     let input = &cli.expression;
-    let mut v: Value = serde_json::from_str(&file_contents).with_context(|| "Could not parse file into JSON".to_string())?;
+    let mut v: Value = serde_json::from_str(&file_contents)
+        .with_context(|| "Could not parse file into JSON".to_string())?;
     let (stack, command) = parse_grammar(input)?;
 
     match command {
@@ -72,11 +75,12 @@ fn main() -> Result<()> {
         }
     }
 
-    println!("{}", to_colored_json_auto(&v).context("Failed to colorize JSON output")?);
+    println!(
+        "{}",
+        to_colored_json_auto(&v).context("Failed to colorize JSON output")?
+    );
     Ok(())
 }
-
-
 
 #[cfg(test)]
 mod tests;

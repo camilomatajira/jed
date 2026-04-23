@@ -1,6 +1,6 @@
-use serde_json::{Map, Number, Value};
+use crate::grammar::{ArrayRange, RangeType};
 use regex::Regex;
-use crate::grammar::{RangeType, ArrayRange};
+use serde_json::{Map, Number, Value};
 
 /// Performs a substitution on the keys of the JSON recursively.
 pub fn substitute_keys(v: Value, replace_regex: &Regex, replace_with: &String) -> Value {
@@ -56,13 +56,13 @@ pub fn substitute_values(v: Value, search_regexp: &Regex, replace_with: &String)
                 return Value::Null;
             } else {
                 if let Ok(int) = &old_null_replaced.parse::<i128>() {
-                    return Value::Number(Number::from_i128(*int).unwrap())
+                    return Value::Number(Number::from_i128(*int).unwrap());
                 }
                 if let Ok(float) = &old_null_replaced.parse::<f64>() {
-                    return Value::Number(Number::from_f64(*float).unwrap())
+                    return Value::Number(Number::from_f64(*float).unwrap());
                 }
-                if let Ok(new_bool) =  &old_null_replaced.parse::<bool>() {
-                    return Value::Bool(*new_bool)
+                if let Ok(new_bool) = &old_null_replaced.parse::<bool>() {
+                    return Value::Bool(*new_bool);
                 }
             }
             Value::String(old_null_replaced)
@@ -75,8 +75,8 @@ pub fn substitute_values(v: Value, search_regexp: &Regex, replace_with: &String)
             if old_bool == old_bool_replaced {
                 return Value::Bool(v);
             } else if let Ok(new_bool) = &old_bool_replaced.parse::<bool>() {
-                    return Value::Bool(*new_bool)
-                }
+                return Value::Bool(*new_bool);
+            }
             Value::String(old_bool_replaced)
         }
         Value::Number(v) => {
@@ -88,10 +88,10 @@ pub fn substitute_values(v: Value, search_regexp: &Regex, replace_with: &String)
                 return Value::Number(v);
             } else {
                 if let Ok(int) = &old_number_replaced.parse::<i128>() {
-                    return Value::Number(Number::from_i128(*int).unwrap())
+                    return Value::Number(Number::from_i128(*int).unwrap());
                 }
                 if let Ok(float) = &old_number_replaced.parse::<f64>() {
-                    return Value::Number(Number::from_f64(*float).unwrap())
+                    return Value::Number(Number::from_f64(*float).unwrap());
                 }
             }
             Value::String(old_number_replaced)
@@ -467,12 +467,12 @@ fn apply_on_range(
                                     }
                                 }
                                 if !result.is_empty() {
-                                return serde_json::Value::Array(result);
-                                } else{
-                                return serde_json::Value::Null;
+                                    return serde_json::Value::Array(result);
+                                } else {
+                                    return serde_json::Value::Null;
                                 }
                             }
-                            }
+                        }
                     }
                 }
                 Value::Null => serde_json::Value::Null,
@@ -518,32 +518,32 @@ fn apply_on_range(
                                         new_map.insert(k.clone(), v.clone());
                                     }
                                 } else if re.find(k).is_some() {
-                                        let new_v = apply_on_range(
-                                            v.clone(),
-                                            new_stack.clone(),
-                                            true,
-                                            keep_non_matching,
-                                            operate_on_object,
-                                            operate_on_array,
-                                            operate_on_string,
-                                        );
-                                        if new_v != Value::Null {
-                                            new_map.insert(k.clone(), new_v);
-                                        }
-                                    } else {
-                                        let new_v = apply_on_range(
-                                            v.clone(),
-                                            stack.clone(),
-                                            false,
-                                            keep_non_matching,
-                                            operate_on_object,
-                                            operate_on_array,
-                                            operate_on_string,
-                                        );
-                                        if new_v != Value::Null {
-                                            new_map.insert(k.clone(), new_v);
-                                        }
+                                    let new_v = apply_on_range(
+                                        v.clone(),
+                                        new_stack.clone(),
+                                        true,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    if new_v != Value::Null {
+                                        new_map.insert(k.clone(), new_v);
                                     }
+                                } else {
+                                    let new_v = apply_on_range(
+                                        v.clone(),
+                                        stack.clone(),
+                                        false,
+                                        keep_non_matching,
+                                        operate_on_object,
+                                        operate_on_array,
+                                        operate_on_string,
+                                    );
+                                    if new_v != Value::Null {
+                                        new_map.insert(k.clone(), new_v);
+                                    }
+                                }
                             }
                             if !new_map.is_empty() {
                                 return serde_json::Value::Object(new_map);
@@ -791,11 +791,14 @@ pub fn substitute_values_on_specified_ranges(
             )
         },
         &|vec, array_range| {
-            operate_on_array(vec, array_range, old_regexp.clone(), replace_with.to_owned())
+            operate_on_array(
+                vec,
+                array_range,
+                old_regexp.clone(),
+                replace_with.to_owned(),
+            )
         },
-        &|s, _re| {
-            operate_on_string(s, _re, old_regexp.clone(), replace_with.to_owned())
-        }
+        &|s, _re| operate_on_string(s, _re, old_regexp.clone(), replace_with.to_owned()),
     )
 }
 
