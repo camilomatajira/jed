@@ -1,5 +1,5 @@
 substitute = {
-    range_regex? ~ sed_command ~ "/"? ~ pattern ~ "/"? ~ replacement ~ "/"? ~ flags?
+    range_regex? ~ sed_command ~ "/"? ~ pattern ~ "/"? ~ replacement ~ "/"?
 }
 
 sed_command = { ASCII_ALPHA }
@@ -13,7 +13,3 @@ value_range_regex = { "/" ~ (!"/"~ANY)+ ~ "/" }
 pattern     = { (!"/" ~ ANY)* }
 replacement = { (!"/" ~ ANY)* }
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
-
-flags = { flag+ }
-flag  = { "g" | "i" | "p" | ASCII_DIGIT+ }
-

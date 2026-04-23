@@ -10,7 +10,6 @@ use anyhow::{Context, Result};
 #[grammar = "grammar.pest"]
 struct SedParser;
 use std::io::Read;
-/// Example: Options and flags
 #[derive(ClapParser)]
 struct Cli {
     #[clap(short, long, action)]
@@ -39,7 +38,6 @@ enum JedCommand {
 struct SubstituteParams {
     pattern: Regex,
     replacement: String,
-    flags: String,
 }
 
 
@@ -106,7 +104,6 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
     let parsed = SedParser::parse(Rule::substitute, &input).with_context(|| format!("Parsing the jed command failed: {input}"))?;
     let mut pattern = Regex::new("")?;
     let mut replacement = String::from("");
-    let mut flags = String::from("");
     let mut sed_command = ' ';
     for pair in parsed.into_iter().next().context("Parsing the jed command failed")?.into_inner() {
         match pair.as_rule() {
@@ -149,7 +146,6 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
             }
             Rule::pattern => pattern = Regex::new(pair.as_str()).context("Parsing the search pattern failed")?,
             Rule::replacement => replacement = pair.as_str().to_string(),
-            Rule::flags => flags = pair.as_str().to_string(),
             _ => {}
         }
     }
@@ -160,7 +156,6 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
             JedCommand::Substitute(SubstituteParams {
                 pattern,
                 replacement,
-                flags,
             }),
         ));
     }
@@ -170,7 +165,6 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
             JedCommand::SubstituteKeys(SubstituteParams {
                 pattern,
                 replacement,
-                flags,
             }),
         ));
     }
@@ -1041,6 +1035,7 @@ fn substitute_keys_on_specified_ranges(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
     fn test_substitute_keys_1() {
         let some_json = r#"
@@ -1268,107 +1263,15 @@ mod tests {
         assert_eq!(v["sha"], "hola");
     }
     #[test]
-    fn test_filter_0() {
-        let some_json = r#"
-        {
-            "name": "camilo"
-        }"#;
-        let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![String::from("nothing")];
-        v = filter_key(v, &stack);
-        assert_eq!(v["name"], Value::Null);
-    }
-    #[test]
-    fn test_filter_1() {
-        let some_json = r#"
-        {
-            "name": "camilo"
-        }"#;
-        let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![String::from("name")];
-        v = filter_key(v, &stack);
-        assert_eq!(v["name"], "camilo");
-    }
-    #[test]
-    fn test_filter_2() {
-        let some_json = r#"
-        {
-            "name": "camilo",
-            "nombre": "andres"
-        }"#;
-        let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![String::from("name")];
-        v = filter_key(v, &stack);
-        assert_eq!(v["nombre"], Value::Null);
-    }
-    #[test]
-    fn test_filter_3() {
-        let some_json = r#"
-        {
-            "author": {
-              "name": "bigmoonbit",
-              "nombre": "hola"
-            }
-        }"#;
-        let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![String::from("author"), String::from("name")];
-        v = filter_key(v, &stack);
-        println!("{}", serde_json::to_string_pretty(&v).unwrap());
-        assert_eq!(v["author"]["name"], "bigmoonbit");
-        assert_eq!(v["author"]["nombre"], Value::Null);
-    }
-    #[test]
-    fn test_filter_4() {
-        let some_json = r#"
-        {
-          "commit": {
-            "author": {
-              "name": "bigmoonbit",
-              "nombre": "hola"
-            }
-        }
-        }"#;
-        let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![
-            String::from("commit"),
-            String::from("author"),
-            String::from("name"),
-        ];
-        v = filter_key(v, &stack);
-        println!("{}", serde_json::to_string_pretty(&v).unwrap());
-        assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
-        assert_eq!(v["commit"]["author"]["nombre"], Value::Null);
-    }
-    #[test]
-    fn test_filter_5() {
-        let some_json = r#"
-        {
-          "commit": {
-            "author": {
-              "name": "bigmoonbit",
-              "nombre": "hola"
-            }
-        }
-        }"#;
-        let mut v: Value = serde_json::from_str(some_json).unwrap();
-        let stack = vec![String::from("commit")];
-        v = filter_key(v, &stack);
-        println!("{}", serde_json::to_string_pretty(&v).unwrap());
-        assert_eq!(v["commit"]["author"]["name"], "bigmoonbit");
-        assert_eq!(v["commit"]["author"]["nombre"], "hola");
-    }
-    #[test]
     fn test_grammar_1() {
         let input = String::from("s/sha/new_sha/g");
         let parsed = SedParser::parse(Rule::substitute, &input).expect("failed to parse");
         let mut _pattern: String;
         let mut _replacement: String;
-        let mut _flags: String;
         for pair in parsed.into_iter().next().unwrap().into_inner() {
             match pair.as_rule() {
                 Rule::pattern => _pattern = pair.as_str().to_string(),
                 Rule::replacement => _replacement = pair.as_str().to_string(),
-                Rule::flags => _flags = pair.as_str().to_string(),
                 _ => {}
             }
         }
@@ -1391,7 +1294,6 @@ mod tests {
             match pair.as_rule() {
                 Rule::pattern => assert_eq!(pair.as_str(), "sha"),
                 Rule::replacement => assert_eq!(pair.as_str(), "new_sha"),
-                Rule::flags => assert_eq!(pair.as_str(), "g"),
                 Rule::range_regex => assert_eq!(pair.as_str(), "/c/./d/./e/"),
                 _ => {}
             }
@@ -1405,7 +1307,6 @@ mod tests {
             match pair.as_rule() {
                 Rule::pattern => assert_eq!(pair.as_str(), "a"),
                 Rule::replacement => assert_eq!(pair.as_str(), "XXXX"),
-                Rule::flags => assert_eq!(pair.as_str(), "g"),
                 Rule::range_regex => assert_eq!(pair.as_str(), "/commit/"),
                 _ => {}
             }
@@ -1419,7 +1320,6 @@ mod tests {
             JedCommand::Substitute(params) => {
                 assert_eq!(params.pattern.as_str(), "a");
                 assert_eq!(params.replacement, "XXXX");
-                assert_eq!(params.flags, "g");
             }
             _ => assert!(false),
         }
@@ -1437,7 +1337,6 @@ mod tests {
             JedCommand::Substitute(params) => {
                 assert_eq!(params.pattern.as_str(), "a");
                 assert_eq!(params.replacement, "b");
-                assert_eq!(params.flags, "g");
             }
             _ => assert!(false),
         }
