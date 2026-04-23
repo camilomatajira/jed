@@ -9,7 +9,6 @@ use anyhow::{Context, Result};
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 struct SedParser;
-use std::fs;
 use std::io::Read;
 /// Example: Options and flags
 #[derive(ClapParser)]
@@ -35,7 +34,7 @@ enum JedCommand {
     SubstituteKeys(SubstituteParams),
     Print,
     Delete,
-    Other(String),
+    Other(()),
 }
 struct SubstituteParams {
     pattern: Regex,
@@ -181,7 +180,7 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
     if sed_command == 'd' {
         return Ok((stack, JedCommand::Delete));
     }
-    return Ok((stack, JedCommand::Other(String::from("temporary"))));
+    return Ok((stack, JedCommand::Other(())));
 }
 
 /// Performs a substitution on the keys of the JSON recursively.
@@ -408,7 +407,7 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                         &operate_on_string,
                     );
                     match &new_v {
-                        Value::Array(array) => {
+                        Value::Array(_) => {
                             // Allows empty arrays to be returned
                             new_map.insert(k.clone(), new_v.clone());
                         }
@@ -621,11 +620,7 @@ fn apply_on_range(
                                         }
                                     }
                                 }
-                                // if result.len() > 0 {
-                                //     return serde_json::Value::Array(result);
-                                // }
                                 return serde_json::Value::Array(result);
-                                // return serde_json::Value::Null;
                             }
                         }
                         RangeType::Array(array_range) => {
@@ -1013,7 +1008,7 @@ fn substitute_keys_on_specified_ranges(
         stack,
         false,
         true, // keep non-matching nodes (substitute keeps the whole doc)
-        &|map, re, stack, stack_anchored| {
+        &|map, re, _stack, _stack_anchored| {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in map {
                 if re.find(&k).is_some() {
@@ -1044,8 +1039,8 @@ fn substitute_keys_on_specified_ranges(
     )
 }
 
+#[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn test_substitute_keys_1() {
         let some_json = r#"
