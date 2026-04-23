@@ -1,5 +1,6 @@
 use super::*;
-use super::grammar::{SedParser, Rule};
+use super::grammar::{SedParser, Rule, RangeType, ArrayRange};
+use regex::Regex;
 use pest::Parser;
 
 #[test]
