@@ -52,7 +52,7 @@ fn main() -> Result<()> {
 
     match cli.input_file {
         Some(ref input_file) => {
-            file_contents = std::fs::read_to_string(&input_file).with_context(|| format!("Could not read file"))?;
+            file_contents = std::fs::read_to_string(input_file).with_context(|| "Could not read file".to_string())?;
             file_contents = file_contents.parse::<String>()?;
         }
         None => {
@@ -61,14 +61,14 @@ fn main() -> Result<()> {
     }
 
     let input = &cli.expression;
-    let mut v: Value = serde_json::from_str(&file_contents).with_context(|| format!("Could not parse file into JSON"))?;
+    let mut v: Value = serde_json::from_str(&file_contents).with_context(|| "Could not parse file into JSON".to_string())?;
     let (stack, command) = parse_grammar(input)?;
 
     match command {
         JedCommand::Substitute(params) => {
             let pattern = params.pattern;
             let replacement = params.replacement;
-            if stack.len() > 0 {
+            if !stack.is_empty() {
                 v = substitute_values_on_specified_ranges(v, stack, &pattern, &replacement);
             } else {
                 v = substitute_values(v, &pattern, &replacement);
@@ -77,7 +77,7 @@ fn main() -> Result<()> {
         JedCommand::SubstituteKeys(params) => {
             let pattern = params.pattern;
             let replacement = params.replacement;
-            if stack.len() > 0 {
+            if !stack.is_empty() {
                 v = substitute_keys_on_specified_ranges(v, stack, &pattern, &replacement);
             } else {
                 v = substitute_keys(v, &pattern, &replacement);
@@ -101,7 +101,7 @@ fn main() -> Result<()> {
 
 fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
     let mut stack = Vec::new();
-    let parsed = SedParser::parse(Rule::substitute, &input).with_context(|| format!("Parsing the jed command failed: {input}"))?;
+    let parsed = SedParser::parse(Rule::substitute, input).with_context(|| format!("Parsing the jed command failed: {input}"))?;
     let mut pattern = Regex::new("")?;
     let mut replacement = String::from("");
     let mut sed_command = ' ';
@@ -174,12 +174,12 @@ fn parse_grammar(input: &String) -> Result<(Vec<RangeType>, JedCommand)> {
     if sed_command == 'd' {
         return Ok((stack, JedCommand::Delete));
     }
-    return Ok((stack, JedCommand::Other(())));
+    Ok((stack, JedCommand::Other(())))
 }
 
 /// Performs a substitution on the keys of the JSON recursively.
 fn substitute_keys(v: Value, replace_regex: &Regex, replace_with: &String) -> Value {
-    let v = match v {
+    match v {
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
@@ -201,11 +201,10 @@ fn substitute_keys(v: Value, replace_regex: &Regex, replace_with: &String) -> Va
         Value::Null => Value::Null,
         Value::Bool(v) => Value::Bool(v),
         Value::Number(v) => Value::Number(v),
-    };
-    return v;
+    }
 }
 fn substitute_values(v: Value, search_regexp: &Regex, replace_with: &String) -> Value {
-    let v = match v {
+    match v {
         Value::Object(old_map) => {
             let mut new_map: Map<String, Value> = Map::new();
             for (k, v) in old_map {
@@ -228,60 +227,51 @@ fn substitute_values(v: Value, search_regexp: &Regex, replace_with: &String) -> 
             let old_null_replaced = search_regexp
                 .replace_all(&old_null, replace_with)
                 .into_owned();
-            if &old_null == &old_null_replaced {
+            if old_null == old_null_replaced {
                 return Value::Null;
             } else {
-                match &old_null_replaced.parse::<i128>() {
-                    Ok(int) => return Value::Number(Number::from_i128(*int).unwrap()),
-                    Err(_) => (),
+                if let Ok(int) = &old_null_replaced.parse::<i128>() {
+                    return Value::Number(Number::from_i128(*int).unwrap())
                 }
-                match &old_null_replaced.parse::<f64>() {
-                    Ok(float) => return Value::Number(Number::from_f64(*float).unwrap()),
-                    Err(_) => (),
+                if let Ok(float) = &old_null_replaced.parse::<f64>() {
+                    return Value::Number(Number::from_f64(*float).unwrap())
                 }
-                match &old_null_replaced.parse::<bool>() {
-                    Ok(new_bool) => return Value::Bool(*new_bool),
-                    Err(_) => (),
+                if let Ok(new_bool) =  &old_null_replaced.parse::<bool>() {
+                    return Value::Bool(*new_bool)
                 }
             }
-            return Value::String(old_null_replaced);
+            Value::String(old_null_replaced)
         }
         Value::Bool(v) => {
             let old_bool = v.to_string();
             let old_bool_replaced = search_regexp
                 .replace_all(&old_bool, replace_with)
                 .into_owned();
-            if &old_bool == &old_bool_replaced {
+            if old_bool == old_bool_replaced {
                 return Value::Bool(v);
-            } else {
-                match &old_bool_replaced.parse::<bool>() {
-                    Ok(new_bool) => return Value::Bool(*new_bool),
-                    Err(_) => (),
+            } else if let Ok(new_bool) = &old_bool_replaced.parse::<bool>() {
+                    return Value::Bool(*new_bool)
                 }
-            }
-            return Value::String(old_bool_replaced);
+            Value::String(old_bool_replaced)
         }
         Value::Number(v) => {
             let old_number = v.to_string();
             let old_number_replaced = search_regexp
                 .replace_all(&old_number, replace_with)
                 .into_owned();
-            if &old_number == &old_number_replaced {
+            if old_number == old_number_replaced {
                 return Value::Number(v);
             } else {
-                match &old_number_replaced.parse::<i128>() {
-                    Ok(int) => return Value::Number(Number::from_i128(*int).unwrap()),
-                    Err(_) => (),
+                if let Ok(int) = &old_number_replaced.parse::<i128>() {
+                    return Value::Number(Number::from_i128(*int).unwrap())
                 }
-                match &old_number_replaced.parse::<f64>() {
-                    Ok(float) => return Value::Number(Number::from_f64(*float).unwrap()),
-                    Err(_) => (),
+                if let Ok(float) = &old_number_replaced.parse::<f64>() {
+                    return Value::Number(Number::from_f64(*float).unwrap())
                 }
             }
-            return Value::String(old_number_replaced);
+            Value::String(old_number_replaced)
         }
-    };
-    return v;
+    }
 }
 
 /// This function performs the substitution only in the values that match the filter "stack"
@@ -316,12 +306,12 @@ fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                     );
                     match &new_v {
                         Value::Array(array) => {
-                            if array.len() > 0 {
+                            if !array.is_empty() {
                                 new_map.insert(k.clone(), new_v.clone());
                             }
                         }
                         Value::Object(object) => {
-                            if object.len() > 0 {
+                            if !object.is_empty() {
                                 new_map.insert(k.clone(), new_v.clone());
                             }
                         } // _ => new_map.insert(k.clone(), new_v),
@@ -330,19 +320,13 @@ fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                             new_map.insert(k.clone(), new_v.clone());
                         }
                     }
-                    // if new_v != Value:: {
-                    //     new_map.insert(k.clone(), new_v);
-                    // }
-                    // if new_v != Value::Null {
-                    //     new_map.insert(k.clone(), new_v);
-                    // }
                 }
             }
         }
-        if new_map.len() > 0 {
+        if !new_map.is_empty() {
             return serde_json::Value::Object(new_map);
         }
-        return serde_json::Value::Null;
+        serde_json::Value::Null
     }
     fn operate_on_array(vec: Vec<Value>, array_range: ArrayRange) -> Value {
         let mut new_vec: Vec<Value> = Vec::new();
@@ -351,13 +335,13 @@ fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                 new_vec.push(val.clone());
             }
         }
-        return serde_json::Value::Array(new_vec);
+        serde_json::Value::Array(new_vec)
     }
     fn operate_on_string(input: String, re: Regex) -> Value {
         if re.find(&input).is_some() {
-            return serde_json::Value::String(input);
+            serde_json::Value::String(input)
         } else {
-            return serde_json::Value::Null;
+            serde_json::Value::Null
         }
     }
     apply_on_range(
@@ -371,7 +355,7 @@ fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
     )
 }
 fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
-    if stack.len() == 0 {
+    if stack.is_empty() {
         return Value::Null;
     }
     fn operate_on_object(
@@ -406,7 +390,7 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                             new_map.insert(k.clone(), new_v.clone());
                         }
                         Value::Object(object) => {
-                            if object.len() > 0 {
+                            if !object.is_empty() {
                                 new_map.insert(k.clone(), new_v.clone());
                             }
                         }
@@ -445,10 +429,10 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                 }
             }
         }
-        if new_map.len() > 0 {
+        if !new_map.is_empty() {
             return serde_json::Value::Object(new_map);
         }
-        return serde_json::Value::Null;
+        serde_json::Value::Null
     }
     fn operate_on_array(vec: Vec<Value>, array_range: ArrayRange) -> Value {
         let mut new_vec: Vec<Value> = Vec::new();
@@ -457,13 +441,13 @@ fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                 new_vec.push(val.clone());
             }
         }
-        return serde_json::Value::Array(new_vec);
+        serde_json::Value::Array(new_vec)
     }
     fn operate_on_string(input: String, re: Regex) -> Value {
         if re.find(&input).is_some() {
-            return serde_json::Value::Null;
+            serde_json::Value::Null
         } else {
-            return serde_json::Value::String(input);
+            serde_json::Value::String(input)
         }
     }
     apply_on_range(
@@ -523,7 +507,7 @@ fn apply_on_range(
                                         new_map.insert(k.clone(), new_v);
                                     }
                                 }
-                                if new_map.len() > 0 {
+                                if !new_map.is_empty() {
                                     return serde_json::Value::Object(new_map);
                                 } else {
                                     return serde_json::Value::Null;
@@ -553,7 +537,7 @@ fn apply_on_range(
                                         new_map.insert(k.clone(), new_v);
                                     }
                                 }
-                                if new_map.len() > 0 {
+                                if !new_map.is_empty() {
                                     return serde_json::Value::Object(new_map);
                                 } else {
                                     return serde_json::Value::Null;
@@ -599,12 +583,12 @@ fn apply_on_range(
                                     );
                                     match &new_v {
                                         Value::Array(array) => {
-                                            if array.len() > 0 {
+                                            if !array.is_empty() {
                                                 result.push(new_v);
                                             }
                                         }
                                         Value::Object(object) => {
-                                            if object.len() > 0 {
+                                            if !object.is_empty() {
                                                 result.push(new_v);
                                             }
                                         }
@@ -641,12 +625,12 @@ fn apply_on_range(
                                     );
                                     match &new_v {
                                         Value::Array(array) => {
-                                            if array.len() > 0 {
+                                            if !array.is_empty() {
                                                 result.push(new_v);
                                             }
                                         }
                                         Value::Object(object) => {
-                                            if object.len() > 0 {
+                                            if !object.is_empty() {
                                                 result.push(new_v);
                                             }
                                         }
@@ -656,7 +640,7 @@ fn apply_on_range(
                                         }
                                     }
                                 }
-                                if result.len() > 0 {
+                                if !result.is_empty() {
                                 return serde_json::Value::Array(result);
                                 } else{
                                 return serde_json::Value::Null;
@@ -691,7 +675,7 @@ fn apply_on_range(
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
                                 if stack_anchored {
-                                    if re.find(&k).is_some() {
+                                    if re.find(k).is_some() {
                                         let new_v = apply_on_range(
                                             v.clone(),
                                             new_stack.clone(),
@@ -707,8 +691,7 @@ fn apply_on_range(
                                     } else if keep_non_matching {
                                         new_map.insert(k.clone(), v.clone());
                                     }
-                                } else {
-                                    if re.find(&k).is_some() {
+                                } else if re.find(k).is_some() {
                                         let new_v = apply_on_range(
                                             v.clone(),
                                             new_stack.clone(),
@@ -735,9 +718,8 @@ fn apply_on_range(
                                             new_map.insert(k.clone(), new_v);
                                         }
                                     }
-                                }
                             }
-                            if new_map.len() > 0 {
+                            if !new_map.is_empty() {
                                 return serde_json::Value::Object(new_map);
                             } else {
                                 return serde_json::Value::Null;
@@ -766,7 +748,7 @@ fn apply_on_range(
                                         new_map.insert(k.clone(), new_v);
                                     }
                                 }
-                                if new_map.len() > 0 {
+                                if !new_map.is_empty() {
                                     return serde_json::Value::Object(new_map);
                                 } else {
                                     return serde_json::Value::Null;
@@ -815,7 +797,7 @@ fn apply_on_range(
                                         new_vec.push(new_v)
                                     }
                                 }
-                                if new_vec.len() > 0 {
+                                if !new_vec.is_empty() {
                                     return serde_json::Value::Array(new_vec);
                                 }
                                 return serde_json::Value::Null;
@@ -869,7 +851,7 @@ fn apply_on_range(
             };
         }
     };
-    return response;
+    response
 }
 
 /// This function performs the substitution only in the values that match the filter "stack"
@@ -877,7 +859,7 @@ fn substitute_values_on_specified_ranges(
     v: Value,
     stack: Vec<RangeType>,
     old_regexp: &Regex,
-    replace_with: &String,
+    replace_with: &str,
 ) -> Value {
     fn operate_on_object(
         map: Map<String, Value>,
@@ -896,7 +878,7 @@ fn substitute_values_on_specified_ranges(
                     new_map.insert(k, v);
                 }
             }
-            return Value::Object(new_map);
+            Value::Object(new_map)
         } else {
             let mut new_map = Map::new();
             for (k, v) in map {
@@ -934,7 +916,7 @@ fn substitute_values_on_specified_ranges(
                     }
                 }
             }
-            return Value::Object(new_map);
+            Value::Object(new_map)
         }
     }
     fn operate_on_array(
@@ -965,7 +947,7 @@ fn substitute_values_on_specified_ranges(
         if value_range.is_match(&string) {
             return substitute_values(Value::String(string), &old_regexp, &replace_with);
         }
-        return Value::String(string);
+        Value::String(string)
     }
     apply_on_range(
         v,
@@ -979,14 +961,14 @@ fn substitute_values_on_specified_ranges(
                 stack,
                 stack_anchored,
                 old_regexp.clone(),
-                replace_with.clone(),
+                replace_with.to_owned(),
             )
         },
         &|vec, array_range| {
-            operate_on_array(vec, array_range, old_regexp.clone(), replace_with.clone())
+            operate_on_array(vec, array_range, old_regexp.clone(), replace_with.to_owned())
         },
         &|s, _re| {
-            operate_on_string(s, _re, old_regexp.clone(), replace_with.clone())
+            operate_on_string(s, _re, old_regexp.clone(), replace_with.to_owned())
         }
     )
 }
