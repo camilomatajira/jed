@@ -1,13 +1,19 @@
 # jed - sed for JSON
 
-Jed is a command-line tool that brings sed's power to JSON manipulation. Unlike other JSON tools that invent new query languages from scratch, jed uses the familiar sed syntax that Unix power users already know (and love!).
+`jed` is a command-line tool that brings `sed`'s power to JSON manipulation. Unlike other JSON tools that invent new query languages from scratch, `jed` uses the familiar sed syntax that power users already know (and love!).
 
-If you know sed, you already know jed.
+If you know `sed`, you already know `jed`.
 
 ## Why jed?
 
 Tools like `jq` are powerful but require learning a completely new language.
 Instead, I propose 'sticking to our knitting' and continuing to build upon the work of giants like `sed`, `awk`, and `vim`: Tools whose syntax has proven its worth over decades. Jed transfers that knowledge to JSON.
+
+In this particular case, your knowledge of `sed` can transfer to `jed`, and then your investment learning `sed` 
+has a higher ROI, and learning `jed` is easier.
+
+I would recommend anyone to learn `sed` and `awk`, for this I recommend this [book](https://camilo.matajira.com/?p=354).
+To learn `vim` I recommend this [book](https://camilo.matajira.com/?p=308).
 
 ## Installation
 
@@ -17,11 +23,24 @@ Instead, I propose 'sticking to our knitting' and continuing to build upon the w
 make install
 ```
 ## To keep in mind
-* Jed traverses a JSON document from top to bottom. In other words, it starts at the head (or heads) (and descends recursively to the leaves).
-* Jed defines operations (like print, delete, substitute) that apply differently on the type of value (array, object, string, number, bool, null) the program is currently on.
-* Jed has operations that apply only to string, number, bool, null (like value substitute), and others that only apply to objects (like key substitute).
-* There are also filters that only apply to arrays (example: 0,10) while others only apply to an object key (example /regex/).
-* There are filters that only apply to values (string, number, bool, null) like :/regex/ (but this is still work in progress).
+* Jed traverses a JSON document recursively from top to bottom. To better understand what I mean, check serde JSON's definition
+  of a JSON Value:
+```
+Any valid JSON data can be manipulated in the following recursive enum representation. This data structure is serde_json::Value.
+
+enum Value {
+    Null,
+    Bool(bool),
+    Number(Number),
+    String(String),
+    Array(Vec<Value>),
+    Object(Map<String, Value>),
+}
+```
+* Jed defines operations (like `print`, `delete`, `value substitute`) that apply differently on the type of value (Array, Object, String, Number, Bool, Null) the program is currently on.
+* Jed has operations that apply only to String, Number, Bool, Null (like `value substitute`), and others that only apply to Objects (like `key substitute`).
+* There are also filters that only apply to Arrays (example: `0,10`) while others only apply to an Object key (example `/regex/`).
+* There are filters that only apply to String, Number, Bool, Null like `:/regex/` (but this is still work in progress).
 
 ## Usage
 
@@ -35,8 +54,7 @@ Use `p` to filter and display only matching portions of JSON:
 ```bash
 jed -e '/author/ p' file.json
 ```
-This could be read as: "If you find an object whose key matches the regex /author/, print the key
-and its nested values".
+This could be read as: "If you find an Object whose key matches the regex /author/, print the key and its associated Value, if not, don't print".
 
 One special case of the print command is the following: 
 ```bash
@@ -51,19 +69,18 @@ Use `d` to delete matching portions of JSON:
 ```bash
 jed -e '/author/ d' file.json
 ```
-This could be read as: "If you find an object whose key matches the regex /author/, delete that key
-and its nested values".
+This could be read as: "If you find an Object whose key matches the regex /author/, delete that key and its associated Value".
 
 ### Substitute values
 
 Replace text in JSON values using the familiar `s/pattern/replacement/flags` syntax:
 
 ```bash
-jed -e 's/Camilo MATAJIRA/Camilo A. MATAJIRA/' file.json
+jed -e 's/apple/orange/' file.json
 ```
-This could be read as: "If you find a string that matches the regex /Camilo MATAJIRA/, replace that
-match with 'Camilo A. MATAJIRA'."
-(flags currently not implemented, but may be in the future)
+This could be read as: "If you find a String that matches the regex /apple/, replace that
+match with 'orange'."
+Substitute value also works with Number, Null and Bool.
 
 ### Substitute keys
 
@@ -72,7 +89,9 @@ Replace key names in JSON objects using `S/pattern/replacement`:
 ```bash
 jed -e 'S/author/writer/' file.json
 ```
-This could be read as: "If you find an object key that matches the regex /author/, replace that match with 'writer'."
+This could be read as: "If you find an Object key that matches the regex /author/, replace that key with 'writer'."
+
+See the difference between `substitute values` and `substitute keys`?One operate on String, Number, Bool, Null while the other operate on the keys of an Object.
 
 ### Filter by key
 
@@ -81,25 +100,66 @@ Apply operations only to values under matching keys:
 ```bash
 jed -e '/author/ s/José/Jose/g' file.json
 ```
-This could be read as: "If you find an object that has a key that matches the regex /author/, recursively replace /José/ with /Jose/."
+This could be read as: "If you find an Object that has a key that matches the regex /author/, recursively replace /José/ with /Jose/."
 
 ### Filter by key chain
 
-Match nested key paths using `.`-separated regex patterns, where each `.` means "and then, somewhere inside, find an object whose key matches":
+Match a sucession of Object keys using `.`
 
 ```bash
 jed -e '/commit/./author/./name/ s/old/new/g' file.json
 ```
 This could be read as: "Wherever you find a succession of objects whose keys match the following three patterns /commit/ /author/ /name/, only there replace /old/ with /new/."
 
+Something like this would match, and "old" would be replaced by "new":
+```
+{
+  "commit": {
+    "author": {
+      "name": "old",
+    }
+}
+```
+Result:
+```
+{
+  "commit": {
+    "author": {
+      "name": "new",
+    }
+}
+```
+
+
 ### Filter by array range
 
 Operate only on specific array elements:
 
 ```bash
-jed -e '1,10 s/a/X/g' file.json
+jed -e '0,1 s/a/X/g' file.json
 ```
-This could be read as: "Wherever you find an array, only on its elements 1 to 10 (and descend recursively) replace /a/ with /X/."
+This could be read as: "Wherever you find an array, only on its elements 0 to 1 (and descend recursively) replace /a/ with /X/."
+
+The output of applying that command here:
+```
+{
+  "commit": [
+    { "author": "camilo" },
+    { "author": "andres" }
+    { "author": "camilo andres" }
+    ]
+}
+```
+Would be
+```
+{
+  "commit": [
+    { "author": "cXmilo" },
+    { "author": "Xndres" }
+    { "author": "camilo andres" }
+    ]
+}
+```
 
 ### Filter by a mix of everything
 
@@ -107,7 +167,7 @@ Filter on arrays and keys all at once:
 ```bash
 jed -e '0,1./author/./.*url/p' test.json
 ```
-This could be read as: "Wherever you find a succession of an array (elements 0 and 1), followed by two objects, the first object key matches /author/ and the second object's key matches /.*url/, then print."
+This could be read as: "Wherever you find a succession of an array (elements 0 and 1), followed by two Objects, the first Object key matches /author/ and the second Object's key matches /.*url/, then print."
 
 ## Examples
 
@@ -204,30 +264,12 @@ cat mat6.json | jed -e '/data/.8,12./text|verse/ p' | jed -e "S/data/The Lord's 
   ]
 }
 ```
-### Flags
-
-Not ready yet.
-
-## Type handling
-
-Jed is JSON-aware. Substitutions intelligently handle type conversions:
-
-- Replacing a number with a numeric string keeps it as a number
-- Boolean and null values can be substituted
-- Non-numeric replacements on numbers produce strings
-
-## Development
-
-```bash
-# Run tests
-cargo test
-```
-
 
 ## TO DO's
 This is just the beginning of the project. There are a lot of features that I would like to introduce.
+If you know `sed`, you will notice that I have just implemented the most basic commands.
 For the near future, I would like to add the following:
-* Filter commands by value (the filter applies to the values, not to the keys). Example:
+* Filter commands by value (the filter applies to the values, not to the keys). This is work in progress. Example:
 ```bash
 jed -e ':this_value s/this_value/another_value/g' file.json
 ```
