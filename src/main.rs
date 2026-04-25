@@ -8,6 +8,8 @@ pub struct Cli {
     #[clap(short, long, action)]
     expression: String,
     input_file: Option<String>,
+    #[arg(short, long)]
+    no_color: bool,
 }
 
 mod grammar;
@@ -75,10 +77,12 @@ fn main() -> Result<()> {
         }
     }
 
-    println!(
-        "{}",
+    let output = if cli.no_color{
+        serde_json::to_string_pretty(&v).context("Failed making JSON pretty")?
+    } else {
         to_colored_json_auto(&v).context("Failed to colorize JSON output")?
-    );
+    };
+    println!("{}", output);
     Ok(())
 }
 
