@@ -337,7 +337,7 @@ fn test_grammar_4() {
 #[test]
 fn test_grammar_5() {
     let input = String::from("1,30p");
-    let (stack, command) = parse_grammar(&input).unwrap();
+    let (_stack, command) = parse_grammar(&input).unwrap();
     match command {
         JedCommand::Print => {
             assert!(true)
@@ -680,7 +680,7 @@ fn test_print_1_flexible() {
          }
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
+    let stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
     v = print_on_specified_ranges(v, stack);
     println!("{}", serde_json::to_string_pretty(&v).unwrap());
     assert_eq!(v["connectors"]["account_types"][0], "checking");
@@ -704,7 +704,7 @@ fn test_print_2_flexible() {
          ]
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
+    let stack = vec![RangeType::Key(Regex::new("account_types").unwrap())];
     v = print_on_specified_ranges(v, stack);
     println!("{}", serde_json::to_string_pretty(&v).unwrap());
     assert_eq!(v["connectors"][0]["account_types"][0], "checking");
@@ -727,7 +727,7 @@ fn test_print_3_flexible() {
          ]
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![RangeType::Key(
+    let stack = vec![RangeType::Key(
         Regex::new("something that does not exists").unwrap(),
     )];
     v = print_on_specified_ranges(v, stack);
@@ -752,7 +752,7 @@ fn test_print_4_flexible() {
       }
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![
+    let stack = vec![
         RangeType::Key(Regex::new("key1").unwrap()),
         RangeType::Key(Regex::new("key112").unwrap()),
     ];
@@ -778,7 +778,7 @@ fn test_print_5_flexible() {
 
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![
+    let stack = vec![
         RangeType::Key(Regex::new("stability").unwrap()),
         RangeType::Key(Regex::new("last_update").unwrap()),
     ];
@@ -787,7 +787,7 @@ fn test_print_5_flexible() {
     assert_eq!(v["connectors"][0]["stability"]["last_update"], "a");
 
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![
+    let stack = vec![
         RangeType::Array(ArrayRange { begin: 0, end: 0 }),
         RangeType::Key(Regex::new("stability").unwrap()),
     ];
@@ -805,7 +805,7 @@ fn test_print_6_flexible() {
 
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![RangeType::Array(ArrayRange { begin: 0, end: 0 })];
+    let stack = vec![RangeType::Array(ArrayRange { begin: 0, end: 0 })];
     v = print_on_specified_ranges(v, stack);
     println!("{}", serde_json::to_string_pretty(&v).unwrap());
     assert_eq!(v["connectors"][0], "1");
@@ -829,7 +829,7 @@ fn test_print_7_flexible() {
 
     }"#;
     let mut v: Value = serde_json::from_str(some_json).unwrap();
-    let mut stack = vec![
+    let stack = vec![
         RangeType::Array(ArrayRange { begin: 0, end: 1 }),
         RangeType::Key(Regex::new("account").unwrap()),
     ];
