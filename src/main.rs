@@ -51,7 +51,7 @@ fn main() -> Result<()> {
             let pattern = params.pattern;
             let replacement = params.replacement;
             if !stack.is_empty() {
-                v = substitute_values_on_specified_ranges(v, stack, &pattern, &replacement);
+                v = substitute_values_on_specified_ranges(v, &stack, &pattern, &replacement);
             } else {
                 v = substitute_values(v, &pattern, &replacement);
             }
@@ -60,16 +60,16 @@ fn main() -> Result<()> {
             let pattern = params.pattern;
             let replacement = params.replacement;
             if !stack.is_empty() {
-                v = substitute_keys_on_specified_ranges(v, stack, &pattern, &replacement);
+                v = substitute_keys_on_specified_ranges(v, &stack, &pattern, &replacement);
             } else {
                 v = substitute_keys(v, &pattern, &replacement);
             }
         }
         JedCommand::Print => {
-            v = print_on_specified_ranges(v, stack);
+            v = print_on_specified_ranges(v, &stack);
         }
         JedCommand::Delete => {
-            v = delete_on_specified_ranges(v, stack);
+            v = delete_on_specified_ranges(v, &stack);
         }
         JedCommand::Other(_) => {
             println!("Only substitute command is supported for now");
