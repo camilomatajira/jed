@@ -296,253 +296,36 @@ fn apply_on_range(
     operate_on_array: &dyn Fn(Vec<Value>, ArrayRange) -> Value,
     operate_on_string: &dyn Fn(String, Regex) -> Value,
 ) -> Value {
-    let mut response = Value::Null;
-
     match &stack.len() {
-        0 => {
-            return v;
-        }
-        1 => {
-            response = match v {
-                Value::Object(current) => {
-                    let mut new_stack = stack.clone();
-                    match new_stack.remove(0) {
-                        RangeType::Key(re) => {
-                            return operate_on_object(current, re, stack, stack_anchored);
-                        }
-                        RangeType::Array(_) => {
-                            if stack_anchored {
-                                return if keep_non_matching {
-                                    serde_json::Value::Object(current)
-                                } else {
-                                    serde_json::Value::Null
-                                };
-                            } else {
-                                let mut new_map: Map<String, Value> = Map::new();
-                                for (k, v) in &current {
-                                    let new_v = apply_on_range(
-                                        v.clone(),
-                                        stack.clone(),
-                                        false,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    if new_v != Value::Null {
-                                        new_map.insert(k.clone(), new_v);
-                                    }
-                                }
-                                if !new_map.is_empty() {
-                                    return serde_json::Value::Object(new_map);
-                                } else {
-                                    return serde_json::Value::Null;
-                                }
-                            }
-                        }
-                        RangeType::Value(_) => {
-                            if stack_anchored {
-                                return if keep_non_matching {
-                                    serde_json::Value::Object(current)
-                                } else {
-                                    serde_json::Value::Null
-                                };
-                            } else {
-                                let mut new_map: Map<String, Value> = Map::new();
-                                for (k, v) in &current {
-                                    let new_v = apply_on_range(
-                                        v.clone(),
-                                        stack.clone(),
-                                        false,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    if new_v != Value::Null {
-                                        new_map.insert(k.clone(), new_v);
-                                    }
-                                }
-                                if !new_map.is_empty() {
-                                    return serde_json::Value::Object(new_map);
-                                } else {
-                                    return serde_json::Value::Null;
-                                }
-                            }
-                        }
+        0 => v,
+        1 => match v {
+            Value::Object(current) => {
+                let mut new_stack = stack.clone();
+                match new_stack.remove(0) {
+                    RangeType::Key(re) => {
+                        return operate_on_object(current, re, stack, stack_anchored);
                     }
-                }
-                Value::String(v) => {
-                    let mut new_stack = stack.clone();
-                    match new_stack.remove(0) {
-                        RangeType::Key(_) => {
-                            if keep_non_matching {
-                                return serde_json::Value::String(v);
-                            }
-                            return serde_json::Value::Null;
-                        }
-                        RangeType::Array(_) => return serde_json::Value::Null,
-                        RangeType::Value(re) => return operate_on_string(v, re),
-                    }
-                }
-                Value::Array(current) => {
-                    let mut new_stack = stack.clone();
-                    match new_stack.remove(0) {
-                        RangeType::Key(_) => {
-                            if stack_anchored {
-                                if keep_non_matching {
-                                    return serde_json::Value::Array(current);
-                                } else {
-                                    return serde_json::Value::Null;
-                                }
+                    RangeType::Array(_) => {
+                        if stack_anchored {
+                            return if keep_non_matching {
+                                serde_json::Value::Object(current)
                             } else {
-                                let mut result: Vec<Value> = Vec::new();
-                                for i in current {
-                                    let new_v = apply_on_range(
-                                        i.clone(),
-                                        stack.clone(),
-                                        stack_anchored,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    match &new_v {
-                                        Value::Array(array) => {
-                                            if !array.is_empty() {
-                                                result.push(new_v);
-                                            }
-                                        }
-                                        Value::Object(object) => {
-                                            if !object.is_empty() {
-                                                result.push(new_v);
-                                            }
-                                        }
-                                        Value::Null => {}
-                                        _ => {
-                                            result.push(new_v);
-                                        }
-                                    }
-                                }
-                                return serde_json::Value::Array(result);
-                            }
-                        }
-                        RangeType::Array(array_range) => {
-                            return operate_on_array(current, array_range);
-                        }
-                        RangeType::Value(_) => {
-                            if stack_anchored {
-                                if keep_non_matching {
-                                    return serde_json::Value::Array(current);
-                                } else {
-                                    return serde_json::Value::Null;
-                                }
-                            } else {
-                                let mut result: Vec<Value> = Vec::new();
-                                for i in current {
-                                    let new_v = apply_on_range(
-                                        i.clone(),
-                                        stack.clone(),
-                                        stack_anchored,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    match &new_v {
-                                        Value::Array(array) => {
-                                            if !array.is_empty() {
-                                                result.push(new_v);
-                                            }
-                                        }
-                                        Value::Object(object) => {
-                                            if !object.is_empty() {
-                                                result.push(new_v);
-                                            }
-                                        }
-                                        Value::Null => {}
-                                        _ => {
-                                            result.push(new_v);
-                                        }
-                                    }
-                                }
-                                if !result.is_empty() {
-                                    return serde_json::Value::Array(result);
-                                } else {
-                                    return serde_json::Value::Null;
-                                }
-                            }
-                        }
-                    }
-                }
-                Value::Null => serde_json::Value::Null,
-                Value::Bool(b) => {
-                    return if keep_non_matching {
-                        serde_json::Value::Bool(b)
-                    } else {
-                        serde_json::Value::Null
-                    };
-                }
-                Value::Number(n) => {
-                    return if keep_non_matching {
-                        serde_json::Value::Number(n)
-                    } else {
-                        serde_json::Value::Null
-                    };
-                }
-            };
-        }
-        _ => {
-            response = match v {
-                Value::Object(current) => {
-                    let mut new_stack = stack.clone();
-                    match new_stack.remove(0) {
-                        RangeType::Key(re) => {
+                                serde_json::Value::Null
+                            };
+                        } else {
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
-                                if stack_anchored {
-                                    if re.find(k).is_some() {
-                                        let new_v = apply_on_range(
-                                            v.clone(),
-                                            new_stack.clone(),
-                                            true,
-                                            keep_non_matching,
-                                            operate_on_object,
-                                            operate_on_array,
-                                            operate_on_string,
-                                        );
-                                        if new_v != Value::Null {
-                                            new_map.insert(k.clone(), new_v);
-                                        }
-                                    } else if keep_non_matching {
-                                        new_map.insert(k.clone(), v.clone());
-                                    }
-                                } else if re.find(k).is_some() {
-                                    let new_v = apply_on_range(
-                                        v.clone(),
-                                        new_stack.clone(),
-                                        true,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    if new_v != Value::Null {
-                                        new_map.insert(k.clone(), new_v);
-                                    }
-                                } else {
-                                    let new_v = apply_on_range(
-                                        v.clone(),
-                                        stack.clone(),
-                                        false,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    if new_v != Value::Null {
-                                        new_map.insert(k.clone(), new_v);
-                                    }
+                                let new_v = apply_on_range(
+                                    v.clone(),
+                                    stack.clone(),
+                                    false,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                if new_v != Value::Null {
+                                    new_map.insert(k.clone(), new_v);
                                 }
                             }
                             if !new_map.is_empty() {
@@ -551,20 +334,171 @@ fn apply_on_range(
                                 return serde_json::Value::Null;
                             }
                         }
-                        RangeType::Array(_) => {
-                            if stack_anchored {
-                                return if keep_non_matching {
-                                    serde_json::Value::Object(current)
-                                } else {
-                                    serde_json::Value::Null
-                                };
+                    }
+                    RangeType::Value(_) => {
+                        if stack_anchored {
+                            return if keep_non_matching {
+                                serde_json::Value::Object(current)
                             } else {
-                                let mut new_map: Map<String, Value> = Map::new();
-                                for (k, v) in &current {
+                                serde_json::Value::Null
+                            };
+                        } else {
+                            let mut new_map: Map<String, Value> = Map::new();
+                            for (k, v) in &current {
+                                let new_v = apply_on_range(
+                                    v.clone(),
+                                    stack.clone(),
+                                    false,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                if new_v != Value::Null {
+                                    new_map.insert(k.clone(), new_v);
+                                }
+                            }
+                            if !new_map.is_empty() {
+                                return serde_json::Value::Object(new_map);
+                            } else {
+                                return serde_json::Value::Null;
+                            }
+                        }
+                    }
+                }
+            }
+            Value::String(v) => {
+                let mut new_stack = stack.clone();
+                match new_stack.remove(0) {
+                    RangeType::Key(_) => {
+                        if keep_non_matching {
+                            return serde_json::Value::String(v);
+                        }
+                        return serde_json::Value::Null;
+                    }
+                    RangeType::Array(_) => return serde_json::Value::Null,
+                    RangeType::Value(re) => return operate_on_string(v, re),
+                }
+            }
+            Value::Array(current) => {
+                let mut new_stack = stack.clone();
+                match new_stack.remove(0) {
+                    RangeType::Key(_) => {
+                        if stack_anchored {
+                            if keep_non_matching {
+                                return serde_json::Value::Array(current);
+                            } else {
+                                return serde_json::Value::Null;
+                            }
+                        } else {
+                            let mut result: Vec<Value> = Vec::new();
+                            for i in current {
+                                let new_v = apply_on_range(
+                                    i.clone(),
+                                    stack.clone(),
+                                    stack_anchored,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                match &new_v {
+                                    Value::Array(array) => {
+                                        if !array.is_empty() {
+                                            result.push(new_v);
+                                        }
+                                    }
+                                    Value::Object(object) => {
+                                        if !object.is_empty() {
+                                            result.push(new_v);
+                                        }
+                                    }
+                                    Value::Null => {}
+                                    _ => {
+                                        result.push(new_v);
+                                    }
+                                }
+                            }
+                            return serde_json::Value::Array(result);
+                        }
+                    }
+                    RangeType::Array(array_range) => {
+                        return operate_on_array(current, array_range);
+                    }
+                    RangeType::Value(_) => {
+                        if stack_anchored {
+                            if keep_non_matching {
+                                return serde_json::Value::Array(current);
+                            } else {
+                                return serde_json::Value::Null;
+                            }
+                        } else {
+                            let mut result: Vec<Value> = Vec::new();
+                            for i in current {
+                                let new_v = apply_on_range(
+                                    i.clone(),
+                                    stack.clone(),
+                                    stack_anchored,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                match &new_v {
+                                    Value::Array(array) => {
+                                        if !array.is_empty() {
+                                            result.push(new_v);
+                                        }
+                                    }
+                                    Value::Object(object) => {
+                                        if !object.is_empty() {
+                                            result.push(new_v);
+                                        }
+                                    }
+                                    Value::Null => {}
+                                    _ => {
+                                        result.push(new_v);
+                                    }
+                                }
+                            }
+                            if !result.is_empty() {
+                                return serde_json::Value::Array(result);
+                            } else {
+                                return serde_json::Value::Null;
+                            }
+                        }
+                    }
+                }
+            }
+            Value::Null => serde_json::Value::Null,
+            Value::Bool(b) => {
+                return if keep_non_matching {
+                    serde_json::Value::Bool(b)
+                } else {
+                    serde_json::Value::Null
+                };
+            }
+            Value::Number(n) => {
+                return if keep_non_matching {
+                    serde_json::Value::Number(n)
+                } else {
+                    serde_json::Value::Null
+                };
+            }
+        },
+        _ => match v {
+            Value::Object(current) => {
+                let mut new_stack = stack.clone();
+                match new_stack.remove(0) {
+                    RangeType::Key(re) => {
+                        let mut new_map: Map<String, Value> = Map::new();
+                        for (k, v) in &current {
+                            if stack_anchored {
+                                if re.find(k).is_some() {
                                     let new_v = apply_on_range(
                                         v.clone(),
-                                        stack.clone(),
-                                        false,
+                                        new_stack.clone(),
+                                        true,
                                         keep_non_matching,
                                         operate_on_object,
                                         operate_on_array,
@@ -573,111 +507,168 @@ fn apply_on_range(
                                     if new_v != Value::Null {
                                         new_map.insert(k.clone(), new_v);
                                     }
+                                } else if keep_non_matching {
+                                    new_map.insert(k.clone(), v.clone());
                                 }
-                                if !new_map.is_empty() {
-                                    return serde_json::Value::Object(new_map);
-                                } else {
-                                    return serde_json::Value::Null;
+                            } else if re.find(k).is_some() {
+                                let new_v = apply_on_range(
+                                    v.clone(),
+                                    new_stack.clone(),
+                                    true,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                if new_v != Value::Null {
+                                    new_map.insert(k.clone(), new_v);
+                                }
+                            } else {
+                                let new_v = apply_on_range(
+                                    v.clone(),
+                                    stack.clone(),
+                                    false,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                if new_v != Value::Null {
+                                    new_map.insert(k.clone(), new_v);
                                 }
                             }
                         }
-                        RangeType::Value(_) => {
+                        if !new_map.is_empty() {
+                            return serde_json::Value::Object(new_map);
+                        } else {
+                            return serde_json::Value::Null;
+                        }
+                    }
+                    RangeType::Array(_) => {
+                        if stack_anchored {
                             return if keep_non_matching {
                                 serde_json::Value::Object(current)
                             } else {
                                 serde_json::Value::Null
                             };
-                        }
-                    }
-                }
-                Value::String(s) => {
-                    return if keep_non_matching {
-                        serde_json::Value::String(s)
-                    } else {
-                        serde_json::Value::Null
-                    };
-                }
-                Value::Array(v) => {
-                    let mut new_stack = stack.clone();
-                    match new_stack.remove(0) {
-                        RangeType::Key(_) => {
-                            if stack_anchored {
-                                return if keep_non_matching {
-                                    serde_json::Value::Array(v)
-                                } else {
-                                    serde_json::Value::Null
-                                };
+                        } else {
+                            let mut new_map: Map<String, Value> = Map::new();
+                            for (k, v) in &current {
+                                let new_v = apply_on_range(
+                                    v.clone(),
+                                    stack.clone(),
+                                    false,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                if new_v != Value::Null {
+                                    new_map.insert(k.clone(), new_v);
+                                }
+                            }
+                            if !new_map.is_empty() {
+                                return serde_json::Value::Object(new_map);
                             } else {
-                                let mut new_vec: Vec<Value> = Vec::new();
-                                for val in &v {
-                                    let new_v = apply_on_range(
-                                        val.clone(),
-                                        stack.clone(),
-                                        false,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    );
-                                    if new_v != serde_json::Value::Null {
-                                        new_vec.push(new_v)
-                                    }
-                                }
-                                if !new_vec.is_empty() {
-                                    return serde_json::Value::Array(new_vec);
-                                }
                                 return serde_json::Value::Null;
                             }
                         }
-                        RangeType::Array(array_range) => {
-                            let mut new_vec: Vec<Value> = Vec::new();
-                            for (i, val) in v.iter().enumerate() {
-                                if i >= array_range.begin && i <= array_range.end {
-                                    new_vec.push(apply_on_range(
-                                        val.clone(),
-                                        new_stack.clone(),
-                                        true,
-                                        keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
-                                    ));
-                                } else if keep_non_matching && {
-                                    i < array_range.begin || i > array_range.end
-                                } {
-                                    new_vec.push(val.clone());
-                                }
-                            }
-                            return serde_json::Value::Array(new_vec);
-                        }
-                        RangeType::Value(_) => {
+                    }
+                    RangeType::Value(_) => {
+                        return if keep_non_matching {
+                            serde_json::Value::Object(current)
+                        } else {
+                            serde_json::Value::Null
+                        };
+                    }
+                }
+            }
+            Value::String(s) => {
+                return if keep_non_matching {
+                    serde_json::Value::String(s)
+                } else {
+                    serde_json::Value::Null
+                };
+            }
+            Value::Array(v) => {
+                let mut new_stack = stack.clone();
+                match new_stack.remove(0) {
+                    RangeType::Key(_) => {
+                        if stack_anchored {
                             return if keep_non_matching {
                                 serde_json::Value::Array(v)
                             } else {
                                 serde_json::Value::Null
                             };
+                        } else {
+                            let mut new_vec: Vec<Value> = Vec::new();
+                            for val in &v {
+                                let new_v = apply_on_range(
+                                    val.clone(),
+                                    stack.clone(),
+                                    false,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                );
+                                if new_v != serde_json::Value::Null {
+                                    new_vec.push(new_v)
+                                }
+                            }
+                            if !new_vec.is_empty() {
+                                return serde_json::Value::Array(new_vec);
+                            }
+                            return serde_json::Value::Null;
                         }
                     }
+                    RangeType::Array(array_range) => {
+                        let mut new_vec: Vec<Value> = Vec::new();
+                        for (i, val) in v.iter().enumerate() {
+                            if i >= array_range.begin && i <= array_range.end {
+                                new_vec.push(apply_on_range(
+                                    val.clone(),
+                                    new_stack.clone(),
+                                    true,
+                                    keep_non_matching,
+                                    operate_on_object,
+                                    operate_on_array,
+                                    operate_on_string,
+                                ));
+                            } else if keep_non_matching && {
+                                i < array_range.begin || i > array_range.end
+                            } {
+                                new_vec.push(val.clone());
+                            }
+                        }
+                        return serde_json::Value::Array(new_vec);
+                    }
+                    RangeType::Value(_) => {
+                        return if keep_non_matching {
+                            serde_json::Value::Array(v)
+                        } else {
+                            serde_json::Value::Null
+                        };
+                    }
                 }
-                Value::Null => serde_json::Value::Null,
-                Value::Bool(b) => {
-                    return if keep_non_matching {
-                        serde_json::Value::Bool(b)
-                    } else {
-                        serde_json::Value::Null
-                    };
-                }
-                Value::Number(n) => {
-                    return if keep_non_matching {
-                        serde_json::Value::Number(n)
-                    } else {
-                        serde_json::Value::Null
-                    };
-                }
-            };
-        }
-    };
-    response
+            }
+            Value::Null => serde_json::Value::Null,
+            Value::Bool(b) => {
+                return if keep_non_matching {
+                    serde_json::Value::Bool(b)
+                } else {
+                    serde_json::Value::Null
+                };
+            }
+            Value::Number(n) => {
+                return if keep_non_matching {
+                    serde_json::Value::Number(n)
+                } else {
+                    serde_json::Value::Null
+                };
+            }
+        },
+    }
 }
 
 /// This function performs the substitution only in the values that match the filter "stack"

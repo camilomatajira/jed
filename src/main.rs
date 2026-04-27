@@ -77,7 +77,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let output = if cli.no_color{
+    let output = if cli.no_color {
         serde_json::to_string_pretty(&v).context("Failed making JSON pretty")?
     } else {
         to_colored_json_auto(&v).context("Failed to colorize JSON output")?
