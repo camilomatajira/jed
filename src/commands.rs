@@ -125,9 +125,11 @@ pub fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                         stack.clone(),
                         false,
                         false,
-                        &operate_on_object,
-                        &operate_on_array,
-                        &operate_on_string,
+                        &OperateOnCallbacks {
+                            operate_on_object: &operate_on_object,
+                            operate_on_array: &operate_on_array,
+                            operate_on_string: &operate_on_string,
+                        },
                     );
                     match &new_v {
                         Value::Array(array) => {
@@ -169,15 +171,12 @@ pub fn print_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
             serde_json::Value::Null
         }
     }
-    apply_on_range(
-        v,
-        stack,
-        false,
-        false,
-        &operate_on_object,
-        &operate_on_array,
-        &operate_on_string,
-    )
+    let callbacks = OperateOnCallbacks {
+        operate_on_object: &operate_on_object,
+        operate_on_array: &operate_on_array,
+        operate_on_string: &operate_on_string,
+    };
+    apply_on_range(v, stack, false, false, &callbacks)
 }
 
 pub fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
@@ -206,9 +205,11 @@ pub fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
                         stack.clone(),
                         false,
                         true,
-                        &operate_on_object,
-                        &operate_on_array,
-                        &operate_on_string,
+                        &OperateOnCallbacks {
+                            operate_on_object: &operate_on_object,
+                            operate_on_array: &operate_on_array,
+                            operate_on_string: &operate_on_string,
+                        },
                     );
                     match &new_v {
                         Value::Array(_) => {
@@ -276,15 +277,12 @@ pub fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
             serde_json::Value::String(input)
         }
     }
-    apply_on_range(
-        v,
-        stack,
-        false,
-        true,
-        &operate_on_object,
-        &operate_on_array,
-        &operate_on_string,
-    )
+    let callbacks = OperateOnCallbacks {
+        operate_on_object: &operate_on_object,
+        operate_on_array: &operate_on_array,
+        operate_on_string: &operate_on_string,
+    };
+    apply_on_range(v, stack, false, true, &callbacks)
 }
 
 fn keep_or_null(keep_non_matching: bool, value: Value) -> Value {
@@ -294,14 +292,19 @@ fn keep_or_null(keep_non_matching: bool, value: Value) -> Value {
         serde_json::Value::Null
     }
 }
+
+struct OperateOnCallbacks<'a> {
+    operate_on_object: &'a dyn Fn(Map<String, Value>, Regex, Vec<RangeType>, bool) -> Value,
+    operate_on_array: &'a dyn Fn(Vec<Value>, ArrayRange) -> Value,
+    operate_on_string: &'a dyn Fn(String, Regex) -> Value,
+}
+
 fn apply_on_range(
     v: Value,
     stack: Vec<RangeType>,
     stack_anchored: bool,
     keep_non_matching: bool,
-    operate_on_object: &dyn Fn(Map<String, Value>, Regex, Vec<RangeType>, bool) -> Value,
-    operate_on_array: &dyn Fn(Vec<Value>, ArrayRange) -> Value,
-    operate_on_string: &dyn Fn(String, Regex) -> Value,
+    operate_on_callbacks: &OperateOnCallbacks,
 ) -> Value {
     match &stack.len() {
         0 => v,
@@ -310,7 +313,12 @@ fn apply_on_range(
                 let mut new_stack = stack.clone();
                 match new_stack.remove(0) {
                     RangeType::Key(re) => {
-                        return operate_on_object(current, re, stack, stack_anchored);
+                        return (operate_on_callbacks.operate_on_object)(
+                            current,
+                            re,
+                            stack,
+                            stack_anchored,
+                        );
                     }
                     RangeType::Array(_) => {
                         if stack_anchored {
@@ -323,9 +331,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     false,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 if new_v != Value::Null {
                                     new_map.insert(k.clone(), new_v);
@@ -349,9 +355,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     false,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 if new_v != Value::Null {
                                     new_map.insert(k.clone(), new_v);
@@ -373,7 +377,9 @@ fn apply_on_range(
                         keep_or_null(keep_non_matching, serde_json::Value::String(v))
                     }
                     RangeType::Array(_) => return serde_json::Value::Null,
-                    RangeType::Value(re) => return operate_on_string(v, re),
+                    RangeType::Value(re) => {
+                        return (&operate_on_callbacks.operate_on_string)(v, re)
+                    }
                 }
             }
             Value::Array(current) => {
@@ -381,7 +387,7 @@ fn apply_on_range(
                 match new_stack.remove(0) {
                     RangeType::Key(_) => {
                         if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Array(current))
+                            keep_or_null(keep_non_matching, serde_json::Value::Array(current))
                         } else {
                             let mut result: Vec<Value> = Vec::new();
                             for i in current {
@@ -390,9 +396,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     stack_anchored,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 match &new_v {
                                     Value::Array(array) => {
@@ -415,7 +419,7 @@ fn apply_on_range(
                         }
                     }
                     RangeType::Array(array_range) => {
-                        return operate_on_array(current, array_range);
+                        return (&operate_on_callbacks.operate_on_array)(current, array_range);
                     }
                     RangeType::Value(_) => {
                         if stack_anchored {
@@ -428,9 +432,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     stack_anchored,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 match &new_v {
                                     Value::Array(array) => {
@@ -459,12 +461,8 @@ fn apply_on_range(
                 }
             }
             Value::Null => serde_json::Value::Null,
-            Value::Bool(b) => {
-                keep_or_null(keep_non_matching, serde_json::Value::Bool(b))
-            }
-            Value::Number(n) => {
-                keep_or_null(keep_non_matching, serde_json::Value::Number(n))
-            }
+            Value::Bool(b) => keep_or_null(keep_non_matching, serde_json::Value::Bool(b)),
+            Value::Number(n) => keep_or_null(keep_non_matching, serde_json::Value::Number(n)),
         },
         _ => match v {
             Value::Object(current) => {
@@ -480,9 +478,7 @@ fn apply_on_range(
                                         new_stack.clone(),
                                         true,
                                         keep_non_matching,
-                                        operate_on_object,
-                                        operate_on_array,
-                                        operate_on_string,
+                                        &operate_on_callbacks,
                                     );
                                     if new_v != Value::Null {
                                         new_map.insert(k.clone(), new_v);
@@ -496,9 +492,7 @@ fn apply_on_range(
                                     new_stack.clone(),
                                     true,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 if new_v != Value::Null {
                                     new_map.insert(k.clone(), new_v);
@@ -509,9 +503,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     false,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 if new_v != Value::Null {
                                     new_map.insert(k.clone(), new_v);
@@ -535,9 +527,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     false,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 if new_v != Value::Null {
                                     new_map.insert(k.clone(), new_v);
@@ -555,9 +545,7 @@ fn apply_on_range(
                     }
                 }
             }
-            Value::String(s) => {
-                keep_or_null(keep_non_matching, serde_json::Value::String(s))
-            }
+            Value::String(s) => keep_or_null(keep_non_matching, serde_json::Value::String(s)),
             Value::Array(v) => {
                 let mut new_stack = stack.clone();
                 match new_stack.remove(0) {
@@ -572,9 +560,7 @@ fn apply_on_range(
                                     stack.clone(),
                                     false,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 );
                                 if new_v != serde_json::Value::Null {
                                     new_vec.push(new_v)
@@ -595,9 +581,7 @@ fn apply_on_range(
                                     new_stack.clone(),
                                     true,
                                     keep_non_matching,
-                                    operate_on_object,
-                                    operate_on_array,
-                                    operate_on_string,
+                                    &operate_on_callbacks,
                                 ));
                             } else if keep_non_matching && {
                                 i < array_range.begin || i > array_range.end
@@ -613,12 +597,8 @@ fn apply_on_range(
                 }
             }
             Value::Null => serde_json::Value::Null,
-            Value::Bool(b) => {
-                keep_or_null(keep_non_matching, serde_json::Value::Bool(b))
-            }
-            Value::Number(n) => {
-                keep_or_null(keep_non_matching, serde_json::Value::Number(n))
-            }
+            Value::Bool(b) => keep_or_null(keep_non_matching, serde_json::Value::Bool(b)),
+            Value::Number(n) => keep_or_null(keep_non_matching, serde_json::Value::Number(n)),
         },
     }
 }
@@ -660,25 +640,27 @@ pub fn substitute_values_on_specified_ranges(
                         stack.clone(),
                         false,
                         true,
-                        &|map, re, stack, stack_anchored| {
-                            operate_on_object(
-                                map,
-                                re,
-                                stack,
-                                stack_anchored,
-                                old_regexp.clone(),
-                                replace_with.clone(),
-                            )
+                        &OperateOnCallbacks {
+                            operate_on_object: &|map, re, stack, stack_anchored| {
+                                operate_on_object(
+                                    map,
+                                    re,
+                                    stack,
+                                    stack_anchored,
+                                    old_regexp.clone(),
+                                    replace_with.clone(),
+                                )
+                            },
+                            operate_on_array: &|vec, array_range| {
+                                operate_on_array(
+                                    vec,
+                                    array_range,
+                                    old_regexp.clone(),
+                                    replace_with.clone(),
+                                )
+                            },
+                            operate_on_string: &|s, _re| Value::String(s), // strings aren't a range target here
                         },
-                        &|vec, array_range| {
-                            operate_on_array(
-                                vec,
-                                array_range,
-                                old_regexp.clone(),
-                                replace_with.clone(),
-                            )
-                        },
-                        &|s, _re| Value::String(s), // strings aren't a range target here
                     );
                     if new_v != serde_json::Value::Null {
                         new_map.insert(k, substitute_values(v, &old_regexp, &replace_with));
@@ -718,30 +700,35 @@ pub fn substitute_values_on_specified_ranges(
         }
         Value::String(string)
     }
+
     apply_on_range(
         v,
         stack,
         false,
         true, // keep non-matching nodes (substitute keeps the whole doc)
-        &|map, re, stack, stack_anchored| {
-            operate_on_object(
-                map,
-                re,
-                stack,
-                stack_anchored,
-                old_regexp.clone(),
-                replace_with.to_owned(),
-            )
+        &OperateOnCallbacks {
+            operate_on_object: &|map, re, stack, stack_anchored| {
+                operate_on_object(
+                    map,
+                    re,
+                    stack,
+                    stack_anchored,
+                    old_regexp.clone(),
+                    replace_with.to_owned(),
+                )
+            },
+            operate_on_array: &|vec, array_range| {
+                operate_on_array(
+                    vec,
+                    array_range,
+                    old_regexp.clone(),
+                    replace_with.to_owned(),
+                )
+            },
+            operate_on_string: &|s, _re| {
+                operate_on_string(s, _re, old_regexp.clone(), replace_with.to_owned())
+            },
         },
-        &|vec, array_range| {
-            operate_on_array(
-                vec,
-                array_range,
-                old_regexp.clone(),
-                replace_with.to_owned(),
-            )
-        },
-        &|s, _re| operate_on_string(s, _re, old_regexp.clone(), replace_with.to_owned()),
     )
 }
 
@@ -756,33 +743,35 @@ pub fn substitute_keys_on_specified_ranges(
         stack,
         false,
         true, // keep non-matching nodes (substitute keeps the whole doc)
-        &|map, re, _stack, _stack_anchored| {
-            let mut new_map: Map<String, Value> = Map::new();
-            for (k, v) in map {
-                if re.find(&k).is_some() {
-                    let new_key = replace_regex.replace_all(&k, replace_with).into_owned();
-                    let new_v = substitute_keys(v, replace_regex, replace_with);
-                    new_map.insert(new_key, new_v);
-                } else {
-                    new_map.insert(k, v);
-                }
-            }
-            Value::Object(new_map)
-        },
-        &|vec, array_range| {
-            let new_vec = vec
-                .into_iter()
-                .enumerate()
-                .map(|(i, val)| {
-                    if i >= array_range.begin && i <= array_range.end {
-                        substitute_keys(val, replace_regex, replace_with)
+        &OperateOnCallbacks {
+            operate_on_object: &|map, re, _stack, _stack_anchored| {
+                let mut new_map: Map<String, Value> = Map::new();
+                for (k, v) in map {
+                    if re.find(&k).is_some() {
+                        let new_key = replace_regex.replace_all(&k, replace_with).into_owned();
+                        let new_v = substitute_keys(v, replace_regex, replace_with);
+                        new_map.insert(new_key, new_v);
                     } else {
-                        val
+                        new_map.insert(k, v);
                     }
-                })
-                .collect();
-            Value::Array(new_vec)
+                }
+                Value::Object(new_map)
+            },
+            operate_on_array: &|vec, array_range| {
+                let new_vec = vec
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, val)| {
+                        if i >= array_range.begin && i <= array_range.end {
+                            substitute_keys(val, replace_regex, replace_with)
+                        } else {
+                            val
+                        }
+                    })
+                    .collect();
+                Value::Array(new_vec)
+            },
+            operate_on_string: &|s, _re| Value::String(s), // strings aren't a range target here
         },
-        &|s, _re| Value::String(s), // strings aren't a range target here
     )
 }
