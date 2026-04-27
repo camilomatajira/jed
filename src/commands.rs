@@ -320,31 +320,7 @@ fn apply_on_range(
                         stack_anchored,
                     );
                 }
-                RangeType::Array(_) => {
-                    if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Object(current))
-                    } else {
-                        let mut new_map: Map<String, Value> = Map::new();
-                        for (k, v) in &current {
-                            let new_v = apply_on_range(
-                                v.clone(),
-                                stack,
-                                false,
-                                keep_non_matching,
-                                &operate_on_callbacks,
-                            );
-                            if new_v != Value::Null {
-                                new_map.insert(k.clone(), new_v);
-                            }
-                        }
-                        if !new_map.is_empty() {
-                            return serde_json::Value::Object(new_map);
-                        } else {
-                            return serde_json::Value::Null;
-                        }
-                    }
-                }
-                RangeType::Value(_) => {
+                RangeType::Array(_) | RangeType::Value(_) => {
                     if stack_anchored {
                         keep_or_null(keep_non_matching, serde_json::Value::Object(current))
                     } else {
