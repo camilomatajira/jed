@@ -287,6 +287,13 @@ pub fn delete_on_specified_ranges(v: Value, stack: Vec<RangeType>) -> Value {
     )
 }
 
+fn keep_or_null(keep_non_matching: bool, value: Value) -> Value {
+    if keep_non_matching {
+        value
+    } else {
+        serde_json::Value::Null
+    }
+}
 fn apply_on_range(
     v: Value,
     stack: Vec<RangeType>,
@@ -307,11 +314,7 @@ fn apply_on_range(
                     }
                     RangeType::Array(_) => {
                         if stack_anchored {
-                            return if keep_non_matching {
-                                serde_json::Value::Object(current)
-                            } else {
-                                serde_json::Value::Null
-                            };
+                            keep_or_null(keep_non_matching, serde_json::Value::Object(current))
                         } else {
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
@@ -337,11 +340,7 @@ fn apply_on_range(
                     }
                     RangeType::Value(_) => {
                         if stack_anchored {
-                            return if keep_non_matching {
-                                serde_json::Value::Object(current)
-                            } else {
-                                serde_json::Value::Null
-                            };
+                            keep_or_null(keep_non_matching, serde_json::Value::Object(current))
                         } else {
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
@@ -371,10 +370,7 @@ fn apply_on_range(
                 let mut new_stack = stack.clone();
                 match new_stack.remove(0) {
                     RangeType::Key(_) => {
-                        if keep_non_matching {
-                            return serde_json::Value::String(v);
-                        }
-                        return serde_json::Value::Null;
+                        keep_or_null(keep_non_matching, serde_json::Value::String(v))
                     }
                     RangeType::Array(_) => return serde_json::Value::Null,
                     RangeType::Value(re) => return operate_on_string(v, re),
@@ -385,11 +381,7 @@ fn apply_on_range(
                 match new_stack.remove(0) {
                     RangeType::Key(_) => {
                         if stack_anchored {
-                            if keep_non_matching {
-                                return serde_json::Value::Array(current);
-                            } else {
-                                return serde_json::Value::Null;
-                            }
+                        keep_or_null(keep_non_matching, serde_json::Value::Array(current))
                         } else {
                             let mut result: Vec<Value> = Vec::new();
                             for i in current {
@@ -427,11 +419,7 @@ fn apply_on_range(
                     }
                     RangeType::Value(_) => {
                         if stack_anchored {
-                            if keep_non_matching {
-                                return serde_json::Value::Array(current);
-                            } else {
-                                return serde_json::Value::Null;
-                            }
+                            keep_or_null(keep_non_matching, serde_json::Value::Array(current))
                         } else {
                             let mut result: Vec<Value> = Vec::new();
                             for i in current {
@@ -472,18 +460,10 @@ fn apply_on_range(
             }
             Value::Null => serde_json::Value::Null,
             Value::Bool(b) => {
-                return if keep_non_matching {
-                    serde_json::Value::Bool(b)
-                } else {
-                    serde_json::Value::Null
-                };
+                keep_or_null(keep_non_matching, serde_json::Value::Bool(b))
             }
             Value::Number(n) => {
-                return if keep_non_matching {
-                    serde_json::Value::Number(n)
-                } else {
-                    serde_json::Value::Null
-                };
+                keep_or_null(keep_non_matching, serde_json::Value::Number(n))
             }
         },
         _ => match v {
@@ -546,11 +526,7 @@ fn apply_on_range(
                     }
                     RangeType::Array(_) => {
                         if stack_anchored {
-                            return if keep_non_matching {
-                                serde_json::Value::Object(current)
-                            } else {
-                                serde_json::Value::Null
-                            };
+                            keep_or_null(keep_non_matching, serde_json::Value::Object(current))
                         } else {
                             let mut new_map: Map<String, Value> = Map::new();
                             for (k, v) in &current {
@@ -575,31 +551,19 @@ fn apply_on_range(
                         }
                     }
                     RangeType::Value(_) => {
-                        return if keep_non_matching {
-                            serde_json::Value::Object(current)
-                        } else {
-                            serde_json::Value::Null
-                        };
+                        keep_or_null(keep_non_matching, serde_json::Value::Object(current))
                     }
                 }
             }
             Value::String(s) => {
-                return if keep_non_matching {
-                    serde_json::Value::String(s)
-                } else {
-                    serde_json::Value::Null
-                };
+                keep_or_null(keep_non_matching, serde_json::Value::String(s))
             }
             Value::Array(v) => {
                 let mut new_stack = stack.clone();
                 match new_stack.remove(0) {
                     RangeType::Key(_) => {
                         if stack_anchored {
-                            return if keep_non_matching {
-                                serde_json::Value::Array(v)
-                            } else {
-                                serde_json::Value::Null
-                            };
+                            keep_or_null(keep_non_matching, serde_json::Value::Array(v))
                         } else {
                             let mut new_vec: Vec<Value> = Vec::new();
                             for val in &v {
@@ -644,28 +608,16 @@ fn apply_on_range(
                         return serde_json::Value::Array(new_vec);
                     }
                     RangeType::Value(_) => {
-                        return if keep_non_matching {
-                            serde_json::Value::Array(v)
-                        } else {
-                            serde_json::Value::Null
-                        };
+                        keep_or_null(keep_non_matching, serde_json::Value::Array(v))
                     }
                 }
             }
             Value::Null => serde_json::Value::Null,
             Value::Bool(b) => {
-                return if keep_non_matching {
-                    serde_json::Value::Bool(b)
-                } else {
-                    serde_json::Value::Null
-                };
+                keep_or_null(keep_non_matching, serde_json::Value::Bool(b))
             }
             Value::Number(n) => {
-                return if keep_non_matching {
-                    serde_json::Value::Number(n)
-                } else {
-                    serde_json::Value::Null
-                };
+                keep_or_null(keep_non_matching, serde_json::Value::Number(n))
             }
         },
     }
