@@ -212,7 +212,7 @@ pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
                         },
                     );
                     match &new_v {
-                        Value::Array(_) => {
+                        Value::Array(array) => {
                             // Allows empty arrays to be returned
                             new_map.insert(k.clone(), new_v.clone());
                         }
@@ -355,7 +355,7 @@ fn apply_on_range(
                 }
             },
             Value::Array(current) => match stack_head {
-                RangeType::Key(_) => {
+                RangeType::Key(_)|RangeType::Value(_) => {
                     if stack_anchored {
                         keep_or_null(keep_non_matching, serde_json::Value::Array(current))
                     } else {
@@ -397,43 +397,6 @@ fn apply_on_range(
                         current,
                         array_range.to_owned(),
                     );
-                }
-                RangeType::Value(_) => {
-                    if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Array(current))
-                    } else {
-                        let mut result: Vec<Value> = Vec::new();
-                        for i in current {
-                            let new_v = apply_on_range(
-                                i.clone(),
-                                stack,
-                                stack_anchored,
-                                keep_non_matching,
-                                &operate_on_callbacks,
-                            );
-                            match &new_v {
-                                Value::Array(array) => {
-                                    if !array.is_empty() {
-                                        result.push(new_v);
-                                    }
-                                }
-                                Value::Object(object) => {
-                                    if !object.is_empty() {
-                                        result.push(new_v);
-                                    }
-                                }
-                                Value::Null => {}
-                                _ => {
-                                    result.push(new_v);
-                                }
-                            }
-                        }
-                        if !result.is_empty() {
-                            return serde_json::Value::Array(result);
-                        } else {
-                            return serde_json::Value::Null;
-                        }
-                    }
                 }
             },
             Value::Null => serde_json::Value::Null,
