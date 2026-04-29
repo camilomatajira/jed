@@ -244,33 +244,6 @@ pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
                             new_map.insert(k.clone(), new_v.clone());
                         }
                     }
-                } else {
-                    // return Value::Null;
-                    // let new_v = apply_on_range(
-                    //     v.clone(),
-                    //     stack,
-                    //     true,
-                    //     false,
-                    //     &operate_on_object,
-                    //     &operate_on_array,
-                    //     &operate_on_string,
-                    // );
-                    // match &new_v {
-                    //     Value::Array(array) => {
-                    //         if array.len() > 0 {
-                    //             new_map.insert(k.clone(), new_v.clone());
-                    //         }
-                    //     }
-                    //     Value::Object(object) => {
-                    //         if object.len() > 0 {
-                    //             new_map.insert(k.clone(), new_v.clone());
-                    //         }
-                    //     }
-                    //     Value::Null => {}
-                    //     _ => {
-                    //         new_map.insert(k.clone(), new_v.clone());
-                    //     }
-                    // }
                 }
             }
         }
