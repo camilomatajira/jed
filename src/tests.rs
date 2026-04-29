@@ -1204,10 +1204,7 @@ fn test_delete_9() {
         Some(_) => assert!(true),
         None => assert!(false),
     };
-    match v["connectors"].get(0) {
-        Some(_) => assert!(false),
-        None => assert!(true),
-    };
+    assert_eq!(v["connectors"], Value::Null);
 }
 #[test]
 fn test_delete_10() {

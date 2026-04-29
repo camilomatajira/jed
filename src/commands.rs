@@ -221,7 +221,9 @@ pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
                                 new_map.insert(k.clone(), new_v.clone());
                             }
                         }
-                        Value::Null => {}
+                        Value::Null => {
+                            new_map.insert(k.clone(), Value::Null);
+                        }
                         _ => {
                             new_map.insert(k.clone(), new_v.clone());
                         }
@@ -383,7 +385,11 @@ fn apply_on_range(
                                 }
                             }
                         }
-                        return serde_json::Value::Array(result);
+                        if !result.is_empty() {
+                            return serde_json::Value::Array(result);
+                        } else {
+                            return serde_json::Value::Null;
+                        }
                     }
                 }
                 RangeType::Array(array_range) => {
