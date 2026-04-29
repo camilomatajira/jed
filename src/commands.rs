@@ -2,6 +2,11 @@ use crate::grammar::{ArrayRange, RangeType};
 use regex::Regex;
 use serde_json::{Map, Number, Value};
 
+#[derive(Copy, Clone)]
+pub enum NonMatchingBehaviour {
+    Keep,
+    Discard,
+}
 /// Performs a substitution on the keys of the JSON recursively.
 pub fn substitute_keys(v: Value, replace_regex: &Regex, replace_with: &String) -> Value {
     match v {
@@ -124,7 +129,7 @@ pub fn print_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
                         v.clone(),
                         stack,
                         false,
-                        false,
+                        NonMatchingBehaviour::Discard,
                         &OperateOnCallbacks {
                             operate_on_object: &operate_on_object,
                             operate_on_array: &operate_on_array,
@@ -176,7 +181,7 @@ pub fn print_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
         operate_on_array: &operate_on_array,
         operate_on_string: &operate_on_string,
     };
-    apply_on_range(v, stack, false, false, &callbacks)
+    apply_on_range(v, stack, false, NonMatchingBehaviour::Discard, &callbacks)
 }
 
 pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
@@ -204,7 +209,7 @@ pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
                         v.clone(),
                         stack,
                         false,
-                        true,
+                        NonMatchingBehaviour::Keep,
                         &OperateOnCallbacks {
                             operate_on_object: &operate_on_object,
                             operate_on_array: &operate_on_array,
@@ -212,7 +217,7 @@ pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
                         },
                     );
                     match &new_v {
-                        Value::Array(array) => {
+                        Value::Array(_) => {
                             // Allows empty arrays to be returned
                             new_map.insert(k.clone(), new_v.clone());
                         }
@@ -284,14 +289,13 @@ pub fn delete_on_specified_ranges(v: Value, stack: &[RangeType]) -> Value {
         operate_on_array: &operate_on_array,
         operate_on_string: &operate_on_string,
     };
-    apply_on_range(v, stack, false, true, &callbacks)
+    apply_on_range(v, stack, false, NonMatchingBehaviour::Keep, &callbacks)
 }
 
-fn keep_or_null(keep_non_matching: bool, value: Value) -> Value {
-    if keep_non_matching {
-        value
-    } else {
-        serde_json::Value::Null
+fn keep_or_null(non_matching_behaviour: NonMatchingBehaviour, value: Value) -> Value {
+    match non_matching_behaviour {
+        NonMatchingBehaviour::Keep => value,
+        NonMatchingBehaviour::Discard => serde_json::Value::Null,
     }
 }
 
@@ -305,7 +309,7 @@ fn apply_on_range(
     v: Value,
     stack: &[RangeType],
     stack_anchored: bool,
-    keep_non_matching: bool,
+    non_matching_behaviour: NonMatchingBehaviour,
     operate_on_callbacks: &OperateOnCallbacks,
 ) -> Value {
     let Some((stack_head, stack_tail)) = stack.split_first() else {
@@ -324,7 +328,7 @@ fn apply_on_range(
                 }
                 RangeType::Array(_) | RangeType::Value(_) => {
                     if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Object(current))
+                        keep_or_null(non_matching_behaviour, serde_json::Value::Object(current))
                     } else {
                         let mut new_map: Map<String, Value> = Map::new();
                         for (k, v) in &current {
@@ -332,7 +336,7 @@ fn apply_on_range(
                                 v.clone(),
                                 stack,
                                 false,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             );
                             if new_v != Value::Null {
@@ -348,16 +352,18 @@ fn apply_on_range(
                 }
             },
             Value::String(v) => match stack_head {
-                RangeType::Key(_) => keep_or_null(keep_non_matching, serde_json::Value::String(v)),
+                RangeType::Key(_) => {
+                    keep_or_null(non_matching_behaviour, serde_json::Value::String(v))
+                }
                 RangeType::Array(_) => return serde_json::Value::Null,
                 RangeType::Value(re) => {
                     return (&operate_on_callbacks.operate_on_string)(v, re.to_owned())
                 }
             },
             Value::Array(current) => match stack_head {
-                RangeType::Key(_)|RangeType::Value(_) => {
+                RangeType::Key(_) | RangeType::Value(_) => {
                     if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Array(current))
+                        keep_or_null(non_matching_behaviour, serde_json::Value::Array(current))
                     } else {
                         let mut result: Vec<Value> = Vec::new();
                         for i in current {
@@ -365,7 +371,7 @@ fn apply_on_range(
                                 i.clone(),
                                 stack,
                                 stack_anchored,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             );
                             match &new_v {
@@ -400,8 +406,8 @@ fn apply_on_range(
                 }
             },
             Value::Null => serde_json::Value::Null,
-            Value::Bool(b) => keep_or_null(keep_non_matching, serde_json::Value::Bool(b)),
-            Value::Number(n) => keep_or_null(keep_non_matching, serde_json::Value::Number(n)),
+            Value::Bool(b) => keep_or_null(non_matching_behaviour, serde_json::Value::Bool(b)),
+            Value::Number(n) => keep_or_null(non_matching_behaviour, serde_json::Value::Number(n)),
         }
     } else {
         match v {
@@ -415,13 +421,13 @@ fn apply_on_range(
                                     v.clone(),
                                     stack_tail,
                                     true,
-                                    keep_non_matching,
+                                    non_matching_behaviour,
                                     &operate_on_callbacks,
                                 );
                                 if new_v != Value::Null {
                                     new_map.insert(k.clone(), new_v);
                                 }
-                            } else if keep_non_matching {
+                            } else if matches!(non_matching_behaviour, NonMatchingBehaviour::Keep) {
                                 new_map.insert(k.clone(), v.clone());
                             }
                         } else if re.find(k).is_some() {
@@ -429,7 +435,7 @@ fn apply_on_range(
                                 v.clone(),
                                 stack_tail,
                                 true,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             );
                             if new_v != Value::Null {
@@ -440,7 +446,7 @@ fn apply_on_range(
                                 v.clone(),
                                 stack,
                                 false,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             );
                             if new_v != Value::Null {
@@ -456,7 +462,7 @@ fn apply_on_range(
                 }
                 RangeType::Array(_) => {
                     if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Object(current))
+                        keep_or_null(non_matching_behaviour, serde_json::Value::Object(current))
                     } else {
                         let mut new_map: Map<String, Value> = Map::new();
                         for (k, v) in &current {
@@ -464,7 +470,7 @@ fn apply_on_range(
                                 v.clone(),
                                 stack,
                                 false,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             );
                             if new_v != Value::Null {
@@ -479,14 +485,14 @@ fn apply_on_range(
                     }
                 }
                 RangeType::Value(_) => {
-                    keep_or_null(keep_non_matching, serde_json::Value::Object(current))
+                    keep_or_null(non_matching_behaviour, serde_json::Value::Object(current))
                 }
             },
-            Value::String(s) => keep_or_null(keep_non_matching, serde_json::Value::String(s)),
+            Value::String(s) => keep_or_null(non_matching_behaviour, serde_json::Value::String(s)),
             Value::Array(v) => match stack_head {
                 RangeType::Key(_) => {
                     if stack_anchored {
-                        keep_or_null(keep_non_matching, serde_json::Value::Array(v))
+                        keep_or_null(non_matching_behaviour, serde_json::Value::Array(v))
                     } else {
                         let mut new_vec: Vec<Value> = Vec::new();
                         for val in &v {
@@ -494,7 +500,7 @@ fn apply_on_range(
                                 val.clone(),
                                 stack,
                                 false,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             );
                             if new_v != serde_json::Value::Null {
@@ -515,10 +521,10 @@ fn apply_on_range(
                                 val.clone(),
                                 stack_tail,
                                 true,
-                                keep_non_matching,
+                                non_matching_behaviour,
                                 &operate_on_callbacks,
                             ));
-                        } else if keep_non_matching && {
+                        } else if matches!(non_matching_behaviour, NonMatchingBehaviour::Keep) && {
                             i < array_range.begin || i > array_range.end
                         } {
                             new_vec.push(val.clone());
@@ -526,11 +532,13 @@ fn apply_on_range(
                     }
                     return serde_json::Value::Array(new_vec);
                 }
-                RangeType::Value(_) => keep_or_null(keep_non_matching, serde_json::Value::Array(v)),
+                RangeType::Value(_) => {
+                    keep_or_null(non_matching_behaviour, serde_json::Value::Array(v))
+                }
             },
             Value::Null => serde_json::Value::Null,
-            Value::Bool(b) => keep_or_null(keep_non_matching, serde_json::Value::Bool(b)),
-            Value::Number(n) => keep_or_null(keep_non_matching, serde_json::Value::Number(n)),
+            Value::Bool(b) => keep_or_null(non_matching_behaviour, serde_json::Value::Bool(b)),
+            Value::Number(n) => keep_or_null(non_matching_behaviour, serde_json::Value::Number(n)),
         }
     }
 }
@@ -571,7 +579,7 @@ pub fn substitute_values_on_specified_ranges(
                         v.clone(),
                         stack,
                         false,
-                        true,
+                        NonMatchingBehaviour::Keep,
                         &OperateOnCallbacks {
                             operate_on_object: &|map, re, stack, stack_anchored| {
                                 operate_on_object(
@@ -637,7 +645,7 @@ pub fn substitute_values_on_specified_ranges(
         v,
         stack,
         false,
-        true, // keep non-matching nodes (substitute keeps the whole doc)
+        NonMatchingBehaviour::Keep, // keep non-matching nodes (substitute keeps the whole doc)
         &OperateOnCallbacks {
             operate_on_object: &|map, re, stack, stack_anchored| {
                 operate_on_object(
@@ -674,7 +682,7 @@ pub fn substitute_keys_on_specified_ranges(
         v,
         stack,
         false,
-        true, // keep non-matching nodes (substitute keeps the whole doc)
+        NonMatchingBehaviour::Keep, // keep non-matching nodes (substitute keeps the whole doc)
         &OperateOnCallbacks {
             operate_on_object: &|map, re, _stack, _stack_anchored| {
                 let mut new_map: Map<String, Value> = Map::new();
